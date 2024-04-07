@@ -1,7 +1,9 @@
-package com.example.ASLTranslate;
+package com.example.asltranslate;
 
 import android.os.Bundle;
 
+import com.example.asltransslate.R;
+import com.example.asltransslate.databinding.ActivityMainBinding;
 import com.google.android.material.snackbar.Snackbar;
 
 import androidx.appcompat.app.AppCompatActivity;
@@ -12,8 +14,6 @@ import androidx.navigation.NavController;
 import androidx.navigation.Navigation;
 import androidx.navigation.ui.AppBarConfiguration;
 import androidx.navigation.ui.NavigationUI;
-
-import com.example.ASLTranslate.databinding.ActivityMainBinding;
 
 import android.view.Menu;
 import android.view.MenuItem;

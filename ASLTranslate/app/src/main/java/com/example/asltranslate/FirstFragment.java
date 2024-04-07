@@ -9,7 +9,8 @@ import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
 import androidx.navigation.fragment.NavHostFragment;
 
-import com.example.asltranslate.databinding.FragmentFirstBinding;
+import com.example.asltransslate.R;
+import com.example.asltransslate.databinding.FragmentFirstBinding;
 
 public class FirstFragment extends Fragment {
 
