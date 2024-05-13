@@ -306,6 +306,7 @@ class GalleryFragment : Fragment(), LandmarkerHelper.LandmarkerListener {
                             fragmentGalleryBinding.overlay.setResults(
                                 result.faceResults.first(),
                                 result.handResults.first(),
+                                result.poseResults.first(),
                                 bitmap.height,
                                 bitmap.width,
                                 RunningMode.IMAGE
@@ -386,6 +387,7 @@ class GalleryFragment : Fragment(), LandmarkerHelper.LandmarkerListener {
                         fragmentGalleryBinding.overlay.setResults(
                             result.faceResults.get(resultIndex),
                             result.handResults.get(resultIndex),
+                            result.poseResults.get(resultIndex),
                             result.inputImageHeight,
                             result.inputImageWidth,
                             RunningMode.VIDEO

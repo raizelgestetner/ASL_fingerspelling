@@ -28,6 +28,8 @@ import com.google.mediapipe.tasks.vision.facelandmarker.FaceLandmarker
 import com.google.mediapipe.tasks.vision.facelandmarker.FaceLandmarkerResult
 import com.google.mediapipe.tasks.vision.handlandmarker.HandLandmarker
 import com.google.mediapipe.tasks.vision.handlandmarker.HandLandmarkerResult
+import com.google.mediapipe.tasks.vision.poselandmarker.PoseLandmarker
+import com.google.mediapipe.tasks.vision.poselandmarker.PoseLandmarkerResult
 import kotlin.math.max
 import kotlin.math.min
 
@@ -36,6 +38,7 @@ class OverlayView(context: Context?, attrs: AttributeSet?) :
 
     private var faceLandmarkResults: FaceLandmarkerResult? = null
     private var handLandmarkResults: HandLandmarkerResult? = null
+    private var poseLandmarkerResults: PoseLandmarkerResult? = null
     private var linePaint = Paint()
     private var pointPaint = Paint()
 
@@ -50,6 +53,7 @@ class OverlayView(context: Context?, attrs: AttributeSet?) :
     fun clear() {
         faceLandmarkResults = null
         handLandmarkResults = null
+        poseLandmarkerResults = null
         linePaint.reset()
         pointPaint.reset()
         invalidate()
@@ -82,13 +86,15 @@ class OverlayView(context: Context?, attrs: AttributeSet?) :
             }
 
             FaceLandmarker.FACE_LANDMARKS_CONNECTORS.forEach {
-                canvas.drawLine(
-                    faceLandmarkerResult.faceLandmarks().get(0).get(it!!.start()).x() * imageWidth * scaleFactor,
-                    faceLandmarkerResult.faceLandmarks().get(0).get(it.start()).y() * imageHeight * scaleFactor,
-                    faceLandmarkerResult.faceLandmarks().get(0).get(it.end()).x() * imageWidth * scaleFactor,
-                    faceLandmarkerResult.faceLandmarks().get(0).get(it.end()).y() * imageHeight * scaleFactor,
-                    linePaint
-                )
+                if (faceLandmarkerResult.faceLandmarks().isEmpty() != true &&
+                    faceLandmarkerResult.faceLandmarks().get(0).get(it!!.start()) != null)
+                    canvas.drawLine(
+                        faceLandmarkerResult.faceLandmarks().get(0).get(it!!.start()).x() * imageWidth * scaleFactor,
+                        faceLandmarkerResult.faceLandmarks().get(0).get(it.start()).y() * imageHeight * scaleFactor,
+                        faceLandmarkerResult.faceLandmarks().get(0).get(it.end()).x() * imageWidth * scaleFactor,
+                        faceLandmarkerResult.faceLandmarks().get(0).get(it.end()).y() * imageHeight * scaleFactor,
+                        linePaint
+                    )
             }
         }
 
@@ -113,17 +119,40 @@ class OverlayView(context: Context?, attrs: AttributeSet?) :
                 }
             }
         }
+
+        poseLandmarkerResults?.let { poseLandmarkerResult ->
+            for(landmark in poseLandmarkerResult.landmarks()) {
+                for(normalizedLandmark in landmark) {
+                    canvas.drawPoint(
+                        normalizedLandmark.x() * imageWidth * scaleFactor,
+                        normalizedLandmark.y() * imageHeight * scaleFactor,
+                        pointPaint
+                    )
+                }
+
+                PoseLandmarker.POSE_LANDMARKS.forEach {
+                    canvas.drawLine(
+                        poseLandmarkerResult.landmarks().get(0).get(it!!.start()).x() * imageWidth * scaleFactor,
+                        poseLandmarkerResult.landmarks().get(0).get(it.start()).y() * imageHeight * scaleFactor,
+                        poseLandmarkerResult.landmarks().get(0).get(it.end()).x() * imageWidth * scaleFactor,
+                        poseLandmarkerResult.landmarks().get(0).get(it.end()).y() * imageHeight * scaleFactor,
+                        linePaint)
+                }
+            }
+        }
     }
 
     fun setResults(
         faceLandmarkerResults: FaceLandmarkerResult?,
         handLandmarkerResults: HandLandmarkerResult?,
+        poseLandmarkerResults: PoseLandmarkerResult?,
         imageHeight: Int,
         imageWidth: Int,
         runningMode: RunningMode = RunningMode.IMAGE
     ) {
         faceLandmarkResults = faceLandmarkerResults
         handLandmarkResults = handLandmarkerResults
+        this.poseLandmarkerResults = poseLandmarkerResults
 
         this.imageHeight = imageHeight
         this.imageWidth = imageWidth

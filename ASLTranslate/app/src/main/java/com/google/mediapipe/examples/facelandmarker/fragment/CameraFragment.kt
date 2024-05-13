@@ -400,6 +400,7 @@ class CameraFragment : Fragment(), LandmarkerHelper.LandmarkerListener {
                 fragmentCameraBinding.overlay.setResults(
                     resultBundle.faceResults.firstOrNull(),
                     resultBundle.handResults.firstOrNull(),
+                    resultBundle.poseResults.firstOrNull(),
                     resultBundle.inputImageHeight,
                     resultBundle.inputImageWidth,
                     RunningMode.LIVE_STREAM
