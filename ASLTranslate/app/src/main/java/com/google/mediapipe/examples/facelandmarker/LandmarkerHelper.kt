@@ -34,7 +34,7 @@ class LandmarkerHelper(
         var minPoseTrackingConfidence: Float = DEFAULT_POSE_TRACKING_CONFIDENCE,
         var minPosePresenceConfidence: Float = DEFAULT_POSE_PRESENCE_CONFIDENCE,
         var currentModel: Int = MODEL_POSE_LANDMARKER_FULL,
-        var currentDelegate: Int = DELEGATE_CPU,
+        var currentDelegate: Int = DELEGATE_GPU,
         var runningMode: RunningMode = RunningMode.IMAGE,
         val context: Context,
         // this listener is only used when running in RunningMode.LIVE_STREAM
@@ -304,11 +304,11 @@ class LandmarkerHelper(
             imageProxy: ImageProxy,
             isFrontCamera: Boolean
     ) {
-        if (runningMode != RunningMode.LIVE_STREAM) {
-            throw IllegalArgumentException(
-                    "Attempting to call detectLiveStream while not using RunningMode.LIVE_STREAM"
-            )
-        }
+//        if (runningMode != RunningMode.LIVE_STREAM) {
+//            throw IllegalArgumentException(
+//                    "Attempting to call detectLiveStream while not using RunningMode.LIVE_STREAM"
+//            )
+//        }
         val frameTime = SystemClock.uptimeMillis()
 
         // Copy out RGB bits from the frame to a bitmap buffer
@@ -343,7 +343,30 @@ class LandmarkerHelper(
         // Convert the input Bitmap object to an MPImage object to run inference
         val mpImage = BitmapImageBuilder(rotatedBitmap).build()
 
-        detectAsync(mpImage, frameTime)
+
+        // TODO: change this to detectImage!
+//        detectAsync(mpImage, frameTime)
+
+        var results = detectImage(rotatedBitmap)
+
+        val faceResult = results?.faceResults ?: emptyList()
+        val handResult = results?.handResults ?: emptyList()
+        val poseResult = results?.poseResults ?: emptyList()
+
+        val inferenceTime = results?.inferenceTime ?: 0
+        val inputWidth = results?.inputImageWidth ?: 0
+        val inputHeight = results?.inputImageHeight ?: 0
+
+        landmarkerHelperListener?.onResults(
+            ResultBundle(
+                faceResult,
+                handResult,
+                poseResult,
+                inferenceTime,
+                inputHeight,
+                inputWidth
+            )
+        )
     }
 
     // Run landmark detection using MediaPipe Landmarker APIs
@@ -495,6 +518,8 @@ class LandmarkerHelper(
         val poseResult = poseLandmarker?.detect(mpImage)
 
         val inferenceTimeMs = SystemClock.uptimeMillis() - startTime
+
+        Log.d("inferenceTimeMs", "This is my message: $inferenceTimeMs");
 
         return if (faceResult != null || handResult != null || poseResult != null) {
             ResultBundle(

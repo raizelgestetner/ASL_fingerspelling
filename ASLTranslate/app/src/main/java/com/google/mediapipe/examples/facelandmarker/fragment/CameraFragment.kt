@@ -150,7 +150,8 @@ class CameraFragment : Fragment(), LandmarkerHelper.LandmarkerListener {
         backgroundExecutor.execute {
             LandmarkerHelper = LandmarkerHelper(
                 context = requireContext(),
-                runningMode = RunningMode.LIVE_STREAM,
+//                runningMode = RunningMode.LIVE_STREAM,
+                runningMode = RunningMode.IMAGE,
                 minFaceDetectionConfidence = viewModel.currentMinFaceDetectionConfidence,
                 minFaceTrackingConfidence = viewModel.currentMinFaceTrackingConfidence,
                 minFacePresenceConfidence = viewModel.currentMinFacePresenceConfidence,
@@ -385,6 +386,7 @@ class CameraFragment : Fragment(), LandmarkerHelper.LandmarkerListener {
     override fun onResults(
         resultBundle: LandmarkerHelper.ResultBundle
     ) {
+        Log.d("onResults", "This is my message: onResults");
         activity?.runOnUiThread {
             if (_fragmentCameraBinding != null) {
                 if (fragmentCameraBinding.recyclerviewResults.scrollState != SCROLL_STATE_DRAGGING) {
@@ -403,7 +405,8 @@ class CameraFragment : Fragment(), LandmarkerHelper.LandmarkerListener {
                     resultBundle.poseResults.firstOrNull(),
                     resultBundle.inputImageHeight,
                     resultBundle.inputImageWidth,
-                    RunningMode.LIVE_STREAM
+                    RunningMode.IMAGE,
+//                    RunningMode.LIVE_STREAM
                 )
                 // Force a redraw
                 fragmentCameraBinding.overlay.invalidate()
