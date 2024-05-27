@@ -65,18 +65,21 @@ import org.tensorflow.lite.Interpreter
 import org.tensorflow.lite.support.common.FileUtil
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
-import java.util.Arrays
-
+import org.json.JSONObject
 class TFLiteModel(private val context: Context) {
-    private lateinit var interpreter: Interpreter
 
+    // run module var
+    private lateinit var interpreter: Interpreter
+    // prediction vars
+    private lateinit var characterMap: Map<String, Int>
+    private lateinit var revCharacterMap: Map<Int, String>
     fun loadModel(modelPath: String) {
         val modelFile = FileUtil.loadMappedFile(context, modelPath)
         interpreter = Interpreter(modelFile)
     }
 
 //    fun runModel(frames: Array<FloatArray>): Map<String, Array<FloatArray>> {
-    fun runModel(frame: FloatArray): Float {
+    fun runModel(frame: FloatArray): FloatArray {
     Log.d("ASL", "in runModel1")
         val inputTensor = interpreter.getInputTensor(0)
         val inputShape = inputTensor.shape()
@@ -112,11 +115,16 @@ class TFLiteModel(private val context: Context) {
         interpreter.run(inputBuffer, outputBuffer)
 
     // Extract the scalar output from the buffer
-        outputBuffer.rewind()
-        val output = outputBuffer.float
-        Log.d("TFLiteModel", "Output: $output")
+//        outputBuffer.rewind()
+//        val output = outputBuffer.float
+//        Log.d("TFLiteModel", "Output: $output")
+//
+//        return output
+    outputBuffer.rewind()
+    val outputArray = FloatArray(outputBuffer.asFloatBuffer().remaining())
+    outputBuffer.asFloatBuffer().get(outputArray)
 
-        return output
+    return outputArray
     }
 
     private fun convertArrayToByteBuffer(array: Array<FloatArray>): ByteBuffer {
@@ -143,9 +151,41 @@ class TFLiteModel(private val context: Context) {
         return byteBuffer
     }
 
+    fun loadCharacterMap(jsonPath: String) {
+        try {
+            val jsonString = context.assets.open(jsonPath).bufferedReader().use { it.readText() }
+            val jsonObject = JSONObject(jsonString)
+            characterMap = jsonObjectToMap(jsonObject).mapValues { it.value as Int }
+            revCharacterMap = characterMap.entries.associate { (key, value) -> value to key }
+            Log.d("TFLiteModel", "Character map loaded successfully")
+        } catch (e: Exception) {
+            Log.e("TFLiteModel", "Error loading character map", e)
+        }
+    }
+    fun getPredictionString(output: FloatArray): String {
+        val predictions = output.map { it.toInt() }
+        return predictions.joinToString("") { revCharacterMap[it] ?: "" }
+    }
+
+    // Custom method to convert JSONObject to Map
+    private fun jsonObjectToMap(jsonObject: JSONObject): Map<String, Any> {
+        val map = mutableMapOf<String, Any>()
+        val keys = jsonObject.keys()
+        while (keys.hasNext()) {
+            val key = keys.next()
+            val value = jsonObject.get(key)
+            map[key] = value
+        }
+        return map
+    }
+
+
+
     companion object {
         const val OUTPUT_SIZE = 63 // Replace with the actual size of your model output
     }
 }
 
+// Utility function to convert a JSONObject to a Map
+//fun JSONObject.toMap(): Map<String, Any> = keys().asSequence().associateWith { it -> get(it) }
 

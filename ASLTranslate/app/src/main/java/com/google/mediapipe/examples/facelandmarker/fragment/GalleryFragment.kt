@@ -518,9 +518,10 @@ class GalleryFragment : Fragment(), LandmarkerHelper.LandmarkerListener {
         val context: Context = requireContext() // Your Android context
         val model = TFLiteModel(context)
         model.loadModel("model.tflite")
+        model.loadCharacterMap("character_to_prediction_index.json")
 //        val output = model.runModel(frames)
         // Run inference on each frame
-        val results = mutableListOf<Float>()
+        val results = mutableListOf<FloatArray>()
         for (frame in frames) {
             Log.d("ASL", "cur frame : ${Arrays.toString(frame)}")
 //            Log.d("ASL", "in loop")
@@ -528,6 +529,8 @@ class GalleryFragment : Fragment(), LandmarkerHelper.LandmarkerListener {
             results.add(output)
         }
         Log.d("ASL", "Final Output: ${Arrays.deepToString(results.toTypedArray())}")
+        val predictionStr = results.joinToString("") { model.getPredictionString(it) }
+        Log.d("ASL", "Prediction: $predictionStr")
 //        printOutput(output)
     }
 

@@ -104,4 +104,7 @@ dependencies {
     implementation 'org.tensorflow:tensorflow-lite:2.7.0' // or the latest version
     implementation 'org.tensorflow:tensorflow-lite-support:0.2.0' // or the latest version
 
+    // json
+    implementation 'org.json:json:20201115'
+
 }
