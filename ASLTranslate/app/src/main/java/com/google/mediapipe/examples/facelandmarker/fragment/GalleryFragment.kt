@@ -15,6 +15,7 @@
  */
 package com.google.mediapipe.examples.facelandmarker.fragment
 
+import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.ImageDecoder
 import android.net.Uri
@@ -37,11 +38,12 @@ import com.example.asltransslate.LandmarkerHelper
 import com.google.mediapipe.examples.facelandmarker.MainViewModel
 import com.google.mediapipe.examples.facelandmarker.databinding.FragmentGalleryBinding
 import com.google.mediapipe.tasks.vision.core.RunningMode
+import java.util.Arrays
 import java.util.Locale
 import java.util.concurrent.Executors
 import java.util.concurrent.ScheduledExecutorService
 import java.util.concurrent.TimeUnit
-
+import kotlin.random.Random
 class GalleryFragment : Fragment(), LandmarkerHelper.LandmarkerListener {
 
     enum class MediaType {
@@ -103,6 +105,7 @@ class GalleryFragment : Fragment(), LandmarkerHelper.LandmarkerListener {
         }
 
         initBottomSheetControls()
+
     }
 
     override fun onPause() {
@@ -119,6 +122,7 @@ class GalleryFragment : Fragment(), LandmarkerHelper.LandmarkerListener {
             faceBlendshapesResultAdapter.notifyDataSetChanged()
         }
         super.onPause()
+        runAsl()
     }
 
     private fun initBottomSheetControls() {
@@ -143,7 +147,9 @@ class GalleryFragment : Fragment(), LandmarkerHelper.LandmarkerListener {
             if (viewModel.currentMinFaceDetectionConfidence >= 0.2) {
                 viewModel.setMinFaceDetectionConfidence(viewModel.currentMinFaceDetectionConfidence - 0.1f)
                 updateControlsUi()
+                runAsl()
             }
+            runAsl()
         }
 
         // When clicked, raise detection score threshold floor
@@ -484,4 +490,45 @@ class GalleryFragment : Fragment(), LandmarkerHelper.LandmarkerListener {
         // Value used to get frames at specific intervals for inference (e.g. every 300ms)
         private const val VIDEO_INTERVAL_MS = 300L
     }
+
+    fun generateRandomFrame(rows: Int, cols: Int): Array<FloatArray> {
+        return Array(rows) {
+            FloatArray(cols) {
+                Random.nextFloat()
+            }
+        }
+    }
+
+    private fun printOutput(output: Map<String, Array<FloatArray>>) {
+        val outputArray = output["outputs"]
+        Log.d("ModelOutput", "Hello world")
+        if (outputArray != null) {
+            for (i in outputArray.indices) {
+                Log.d("ModelOutput", "Row $i: ${outputArray[i].joinToString(", ", "[", "]")}")
+            }
+        } else {
+            Log.e("ModelOutput", "No output found for key 'outputs'")
+        }
+    }
+    private fun runAsl(){
+
+// Usage
+//        val frames: Array<FloatArray> = Array(20) { FloatArray(390) { 0.5f } }// Your input data as a 2D array of float values
+        val frames: Array<FloatArray> = generateRandomFrame(20, 390)
+        val context: Context = requireContext() // Your Android context
+        val model = TFLiteModel(context)
+        model.loadModel("model.tflite")
+//        val output = model.runModel(frames)
+        // Run inference on each frame
+        val results = mutableListOf<Float>()
+        for (frame in frames) {
+            Log.d("ASL", "cur frame : ${Arrays.toString(frame)}")
+//            Log.d("ASL", "in loop")
+            val output = model.runModel(frame)
+            results.add(output)
+        }
+        Log.d("ASL", "Final Output: ${Arrays.deepToString(results.toTypedArray())}")
+//        printOutput(output)
+    }
+
 }
