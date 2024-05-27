@@ -101,9 +101,10 @@ dependencies {
     implementation 'com.google.mediapipe:tasks-vision:0.10.0'
 
     // tflite
-    implementation 'org.tensorflow:tensorflow-lite:2.6.0'
-    implementation 'org.tensorflow:tensorflow-lite-gpu:2.3.0'
+    implementation 'org.tensorflow:tensorflow-lite:2.7.0' // or the latest version
+    implementation 'org.tensorflow:tensorflow-lite-support:0.2.0' // or the latest version
 
-    implementation 'org.tensorflow:tensorflow-lite-support:0.1.0'
+    // json
+    implementation 'org.json:json:20201115'
 
 }

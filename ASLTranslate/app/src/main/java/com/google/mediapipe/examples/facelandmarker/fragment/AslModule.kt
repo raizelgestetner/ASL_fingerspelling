@@ -33,6 +33,7 @@ package com.google.mediapipe.examples.facelandmarker.fragment
 //
 //
 //
+//
 //}
 //
 //private fun runAsl(){
@@ -56,3 +57,135 @@ package com.google.mediapipe.examples.facelandmarker.fragment
 //    // Process the output buffer as needed
 //
 //}
+
+
+import android.content.Context
+import android.util.Log
+import org.tensorflow.lite.Interpreter
+import org.tensorflow.lite.support.common.FileUtil
+import java.nio.ByteBuffer
+import java.nio.ByteOrder
+import org.json.JSONObject
+class TFLiteModel(private val context: Context) {
+
+    // run module var
+    private lateinit var interpreter: Interpreter
+    // prediction vars
+    private lateinit var characterMap: Map<String, Int>
+    private lateinit var revCharacterMap: Map<Int, String>
+    fun loadModel(modelPath: String) {
+        val modelFile = FileUtil.loadMappedFile(context, modelPath)
+        interpreter = Interpreter(modelFile)
+    }
+
+//    fun runModel(frames: Array<FloatArray>): Map<String, Array<FloatArray>> {
+    fun runModel(frame: FloatArray): FloatArray {
+    Log.d("ASL", "in runModel1")
+        val inputTensor = interpreter.getInputTensor(0)
+        val inputShape = inputTensor.shape()
+        val inputSize = inputTensor.numBytes()
+    // Ensure input data matches expected shape
+
+
+    // Prepare the input buffer
+    val inputBuffer = convertArrayToByteBuffer1(frame)
+//        Log.d("ASL", "in runModel")
+//        Log.d("TFLiteModel", "Input shape: " + Arrays.toString(Array(frame.size){frame}))
+//        Log.d("TFLiteModel", "Input size in bytes: $inputSize")
+
+    // Determine the output tensor shape
+    val outputTensor = interpreter.getOutputTensor(0)
+    val outputShape = outputTensor.shape()
+    val outputSize = outputTensor.numBytes()
+
+//    Log.d("TFLiteModel", "Output shape: " + Arrays.toString(outputShape))
+    Log.d("TFLiteModel", "Output size in bytes: $outputSize")
+
+        val numCharacters = 11
+        val scoreForEachChar = 63
+//        val outputBuffer = Array(4) { FloatArray(OUTPUT_SIZE) } // Replace OUTPUT_SIZE with actual output size
+
+
+//        val outputBuffer = Array(numCharacters){FloatArray(scoreForEachChar)}
+        val outputBuffer = ByteBuffer.allocateDirect(2772).order(ByteOrder.nativeOrder())
+        Log.d("ASL", "Input buffer size: ${inputBuffer.capacity()} bytes. num of frames ${frame.size}")
+
+        val outputMap = mutableMapOf<String, Array<FloatArray>>()
+//        outputMap["outputs"] = outputBuffer
+        interpreter.run(inputBuffer, outputBuffer)
+
+    // Extract the scalar output from the buffer
+//        outputBuffer.rewind()
+//        val output = outputBuffer.float
+//        Log.d("TFLiteModel", "Output: $output")
+//
+//        return output
+    outputBuffer.rewind()
+    val outputArray = FloatArray(outputBuffer.asFloatBuffer().remaining())
+    outputBuffer.asFloatBuffer().get(outputArray)
+
+    return outputArray
+    }
+
+    private fun convertArrayToByteBuffer(array: Array<FloatArray>): ByteBuffer {
+//        val byteBuffer = ByteBuffer.allocateDirect(array.size * array[0].size * 4)
+        val byteBuffer = ByteBuffer.allocateDirect( array[0].size * 4)
+        byteBuffer.order(ByteOrder.nativeOrder())
+        for (row in array) {
+            for (value in row) {
+                byteBuffer.putFloat(value)
+            }
+        }
+        return byteBuffer
+    }
+    private fun convertArrayToByteBuffer1(array: FloatArray): ByteBuffer {
+        val byteBuffer = ByteBuffer.allocateDirect(array.size * 4).apply {
+            order(ByteOrder.nativeOrder())
+        }
+
+        for (value in array) {
+            byteBuffer.putFloat(value)
+        }
+
+        byteBuffer.rewind()
+        return byteBuffer
+    }
+
+    fun loadCharacterMap(jsonPath: String) {
+        try {
+            val jsonString = context.assets.open(jsonPath).bufferedReader().use { it.readText() }
+            val jsonObject = JSONObject(jsonString)
+            characterMap = jsonObjectToMap(jsonObject).mapValues { it.value as Int }
+            revCharacterMap = characterMap.entries.associate { (key, value) -> value to key }
+            Log.d("TFLiteModel", "Character map loaded successfully")
+        } catch (e: Exception) {
+            Log.e("TFLiteModel", "Error loading character map", e)
+        }
+    }
+    fun getPredictionString(output: FloatArray): String {
+        val predictions = output.map { it.toInt() }
+        return predictions.joinToString("") { revCharacterMap[it] ?: "" }
+    }
+
+    // Custom method to convert JSONObject to Map
+    private fun jsonObjectToMap(jsonObject: JSONObject): Map<String, Any> {
+        val map = mutableMapOf<String, Any>()
+        val keys = jsonObject.keys()
+        while (keys.hasNext()) {
+            val key = keys.next()
+            val value = jsonObject.get(key)
+            map[key] = value
+        }
+        return map
+    }
+
+
+
+    companion object {
+        const val OUTPUT_SIZE = 63 // Replace with the actual size of your model output
+    }
+}
+
+// Utility function to convert a JSONObject to a Map
+//fun JSONObject.toMap(): Map<String, Any> = keys().asSequence().associateWith { it -> get(it) }
+
