@@ -300,7 +300,8 @@ class GalleryFragment : Fragment(), LandmarkerHelper.LandmarkerListener {
                             minFaceTrackingConfidence = viewModel.currentMinFaceTrackingConfidence,
                             minFacePresenceConfidence = viewModel.currentMinFacePresenceConfidence,
                             maxNumFaces = viewModel.currentMaxFaces,
-                            currentDelegate = viewModel.currentDelegate
+                            currentDelegate = viewModel.currentDelegate,
+                            arrayOfFloatArray = emptyArray()
                         )
 
                     LandmarkerHelper.detectImage(bitmap)?.let { result ->
@@ -351,7 +352,8 @@ class GalleryFragment : Fragment(), LandmarkerHelper.LandmarkerListener {
                     minFaceTrackingConfidence = viewModel.currentMinFaceTrackingConfidence,
                     minFacePresenceConfidence = viewModel.currentMinFacePresenceConfidence,
                     maxNumFaces = viewModel.currentMaxFaces,
-                    currentDelegate = viewModel.currentDelegate
+                    currentDelegate = viewModel.currentDelegate,
+                    arrayOfFloatArray = emptyArray()
                 )
 
             activity?.runOnUiThread {
@@ -522,12 +524,13 @@ class GalleryFragment : Fragment(), LandmarkerHelper.LandmarkerListener {
 //        val output = model.runModel(frames)
         // Run inference on each frame
         val results = mutableListOf<FloatArray>()
-        for (frame in frames) {
-            Log.d("ASL", "cur frame : ${Arrays.toString(frame)}")
-//            Log.d("ASL", "in loop")
-            val output = model.runModel(frame)
-            results.add(output)
-        }
+        val output = model.runModel(frames)
+//        for (frame in frames) {
+//            Log.d("ASL", "cur frame : ${Arrays.toString(frame)}")
+////            Log.d("ASL", "in loop")
+//            val output = model.runModel(frame)
+//            results.add(output)
+//        }
         Log.d("ASL", "Final Output: ${Arrays.deepToString(results.toTypedArray())}")
         val predictionStr = results.joinToString("") { model.getPredictionString(it) }
         Log.d("ASL", "Prediction: $predictionStr")

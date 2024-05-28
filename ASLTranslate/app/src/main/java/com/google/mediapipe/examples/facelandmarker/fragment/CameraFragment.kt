@@ -157,7 +157,8 @@ class CameraFragment : Fragment(), LandmarkerHelper.LandmarkerListener {
                 minFacePresenceConfidence = viewModel.currentMinFacePresenceConfidence,
                 maxNumFaces = viewModel.currentMaxFaces,
                 currentDelegate = viewModel.currentDelegate,
-                landmarkerHelperListener = this
+                landmarkerHelperListener = this,
+                arrayOfFloatArray = emptyArray()
             )
         }
 
@@ -368,9 +369,13 @@ class CameraFragment : Fragment(), LandmarkerHelper.LandmarkerListener {
     }
 
     private fun detectFace(imageProxy: ImageProxy) {
+        val model = context?.let { TFLiteModel(it) }
+        model?.loadModel("model.tflite")
+        model?.loadCharacterMap("character_to_prediction_index.json")
         LandmarkerHelper.detectLiveStream(
             imageProxy = imageProxy,
-            isFrontCamera = cameraFacing == CameraSelector.LENS_FACING_FRONT
+            isFrontCamera = cameraFacing == CameraSelector.LENS_FACING_FRONT,
+            tfliteModel = model!!
         )
     }
 

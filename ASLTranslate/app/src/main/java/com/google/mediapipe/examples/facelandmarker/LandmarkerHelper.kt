@@ -9,6 +9,7 @@ import android.os.SystemClock
 import android.util.Log
 import androidx.annotation.VisibleForTesting
 import androidx.camera.core.ImageProxy
+import com.google.mediapipe.examples.facelandmarker.fragment.TFLiteModel
 import com.google.mediapipe.framework.image.BitmapImageBuilder
 import com.google.mediapipe.framework.image.MPImage
 import com.google.mediapipe.tasks.components.containers.NormalizedLandmark
@@ -21,25 +22,27 @@ import com.google.mediapipe.tasks.vision.handlandmarker.HandLandmarker
 import com.google.mediapipe.tasks.vision.handlandmarker.HandLandmarkerResult
 import com.google.mediapipe.tasks.vision.poselandmarker.PoseLandmarker
 import com.google.mediapipe.tasks.vision.poselandmarker.PoseLandmarkerResult
+import java.util.Arrays
 
 class LandmarkerHelper(
-        var minFaceDetectionConfidence: Float = DEFAULT_FACE_DETECTION_CONFIDENCE,
-        var minFaceTrackingConfidence: Float = DEFAULT_FACE_TRACKING_CONFIDENCE,
-        var minFacePresenceConfidence: Float = DEFAULT_FACE_PRESENCE_CONFIDENCE,
-        var maxNumFaces: Int = DEFAULT_NUM_FACES,
-        var minHandDetectionConfidence: Float = DEFAULT_HAND_DETECTION_CONFIDENCE,
-        var minHandTrackingConfidence: Float = DEFAULT_HAND_TRACKING_CONFIDENCE,
-        var minHandPresenceConfidence: Float = DEFAULT_HAND_PRESENCE_CONFIDENCE,
-        var maxNumHands: Int = DEFAULT_NUM_HANDS,
-        var minPoseDetectionConfidence: Float = DEFAULT_POSE_DETECTION_CONFIDENCE,
-        var minPoseTrackingConfidence: Float = DEFAULT_POSE_TRACKING_CONFIDENCE,
-        var minPosePresenceConfidence: Float = DEFAULT_POSE_PRESENCE_CONFIDENCE,
-        var currentModel: Int = MODEL_POSE_LANDMARKER_FULL,
-        var currentDelegate: Int = DELEGATE_GPU,
-        var runningMode: RunningMode = RunningMode.IMAGE,
-        val context: Context,
+    var minFaceDetectionConfidence: Float = DEFAULT_FACE_DETECTION_CONFIDENCE,
+    var minFaceTrackingConfidence: Float = DEFAULT_FACE_TRACKING_CONFIDENCE,
+    var minFacePresenceConfidence: Float = DEFAULT_FACE_PRESENCE_CONFIDENCE,
+    var maxNumFaces: Int = DEFAULT_NUM_FACES,
+    var minHandDetectionConfidence: Float = DEFAULT_HAND_DETECTION_CONFIDENCE,
+    var minHandTrackingConfidence: Float = DEFAULT_HAND_TRACKING_CONFIDENCE,
+    var minHandPresenceConfidence: Float = DEFAULT_HAND_PRESENCE_CONFIDENCE,
+    var maxNumHands: Int = DEFAULT_NUM_HANDS,
+    var minPoseDetectionConfidence: Float = DEFAULT_POSE_DETECTION_CONFIDENCE,
+    var minPoseTrackingConfidence: Float = DEFAULT_POSE_TRACKING_CONFIDENCE,
+    var minPosePresenceConfidence: Float = DEFAULT_POSE_PRESENCE_CONFIDENCE,
+    var currentModel: Int = MODEL_POSE_LANDMARKER_FULL,
+    var currentDelegate: Int = DELEGATE_GPU,
+    var runningMode: RunningMode = RunningMode.IMAGE,
+    val context: Context,
         // this listener is only used when running in RunningMode.LIVE_STREAM
-        val landmarkerHelperListener: LandmarkerListener? = null
+    val landmarkerHelperListener: LandmarkerListener? = null,
+    var arrayOfFloatArray: Array<FloatArray>
 ) {
 
     // For this example, these need to be vars so they can be reset on changes.
@@ -371,7 +374,8 @@ class LandmarkerHelper(
     // Convert the ImageProxy to MP Image and feed it to LandmarkerHelper.
     fun detectLiveStream(
             imageProxy: ImageProxy,
-            isFrontCamera: Boolean
+            isFrontCamera: Boolean,
+            tfliteModel: TFLiteModel
     ) {
 //        if (runningMode != RunningMode.LIVE_STREAM) {
 //            throw IllegalArgumentException(
@@ -421,6 +425,32 @@ class LandmarkerHelper(
         val faceResult = results?.faceResults ?: emptyList()
         val handResult = results?.handResults ?: emptyList()
         val poseResult = results?.poseResults ?: emptyList()
+
+        // Extract the selected landmarks and their coordinates
+        val landmarkData = extractLandmarkData(selectedColumns, faceResult.get(0), handResult.get(0), poseResult.get(0))
+
+        // Step 1: Filter out null values or provide a default value
+        val nonNullList: List<Float> = landmarkData.map { it ?: 0.0f } // or list.map { it ?: 0.0f } to provide a default value of 0.0f
+
+        // Step 2: Convert the list of non-nullable floats to FloatArray
+        val floatArray: FloatArray = nonNullList.toFloatArray()
+
+        // Add the new FloatArray to the mutable list
+        // Step 3: Create a new array with a larger size
+        val newArrayOfFloatArray = arrayOfFloatArray.plus(floatArray)
+
+        // Assign the new array back to arrayOfFloatArray
+        arrayOfFloatArray = newArrayOfFloatArray
+
+        // Step 3: Wrap the FloatArray into an array of FloatArray
+//        val arrayOfFloatArray: Array<FloatArray> = arrayOf(floatArray)
+
+        if (arrayOfFloatArray.size >= 15) {
+            runAsl(arrayOfFloatArray, tfliteModel)
+        }
+//        runAsl(arrayOfFloatArray, tfliteModel)
+
+        Log.d("landmarkData", "This is landmarkData: $landmarkData");
 
         val inferenceTime = results?.inferenceTime ?: 0
         val inputWidth = results?.inputImageWidth ?: 0
@@ -565,6 +595,27 @@ class LandmarkerHelper(
         }
     }
 
+    private fun runAsl(frames : Array<FloatArray>, model: TFLiteModel) {
+
+// Usage
+//        val frames: Array<FloatArray> = Array(20) { FloatArray(390) { 0.5f } }// Your input data as a 2D array of float values
+//        val frames: Array<FloatArray> = generateRandomFrame(20, 390)
+//        val output = model.runModel(frames)
+        // Run inference on each frame
+        val results = mutableListOf<FloatArray>()
+        val output = model.runModel(frames)
+//        for (frame in frames) {
+//            Log.d("ASL", "cur frame : ${Arrays.toString(frame)}")
+////            Log.d("ASL", "in loop")
+//            val output = model.runModel(frame)
+//            results.add(output)
+//        }
+        Log.d("ASL", "Final Output: ${Arrays.deepToString(results.toTypedArray())}")
+        val predictionStr = results.joinToString("") { model.getPredictionString(it) }
+        Log.d("ASL", "Prediction: $predictionStr")
+//        printOutput(output)
+    }
+
     // Accepted a Bitmap and runs landmarker inference on it to return
     // results back to the caller
     fun detectImage(image: Bitmap): ResultBundle? {
@@ -589,11 +640,6 @@ class LandmarkerHelper(
         val inferenceTimeMs = SystemClock.uptimeMillis() - startTime
 
         Log.d("inferenceTimeMs", "This is my message: $inferenceTimeMs");
-
-        // Extract the selected landmarks and their coordinates
-        val landmarkData = extractLandmarkData(selectedColumns, faceResult, handResult, poseResult)
-
-        Log.d("landmarkData", "This is landmarkData: $landmarkData");
 
         return if (faceResult != null || handResult != null || poseResult != null) {
             ResultBundle(
