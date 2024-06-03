@@ -143,7 +143,7 @@ class TFLiteModel(private val context: Context) {
     }
 
 // Set output shape
-    val x = 11
+    val x = 30
     val featureSize = 63
     val newOutputShape = intArrayOf(x, featureSize)
 

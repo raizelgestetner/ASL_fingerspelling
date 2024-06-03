@@ -36,7 +36,9 @@ import java.io.File
 import java.io.FileReader
 import java.io.IOException
 import java.io.InputStreamReader
-
+import java.text.SimpleDateFormat
+import java.util.Calendar
+import java.util.Locale
 class LandmarkerHelper(
     var minFaceDetectionConfidence: Float = DEFAULT_FACE_DETECTION_CONFIDENCE,
     var minFaceTrackingConfidence: Float = DEFAULT_FACE_TRACKING_CONFIDENCE,
@@ -416,36 +418,7 @@ class LandmarkerHelper(
         }
         return listOfFloatLists
     }
-    private fun readCSVFile(filename: String): MutableList<Float> {
-        val csvFile = File(Environment.getExternalStorageDirectory(), filename)
-        val floatList = mutableListOf<Float>()
-        if (csvFile.exists()) {
 
-            try {
-                BufferedReader(FileReader(csvFile)).use { br ->
-                    var line: String?
-                    while (br.readLine().also { line = it } != null) {
-                        try {
-                            val value = line!!.trim().toFloat()
-                            floatList.add(value)
-                        } catch (e: NumberFormatException) {
-                            Log.e(TAG, "Error parsing float value from line: $line", e)
-                        }
-                    }
-                }
-            } catch (e: IOException) {
-                Log.e(TAG, "Error reading CSV file", e)
-            }
-
-            // Now floatList contains all the float values from the CSV file
-//            for (f in floatList) {
-//                Log.d(TAG, "Float value: $f")
-//            }
-        } else {
-            Log.e(TAG, "CSV file does not exist")
-        }
-        return floatList
-    }
 
 
     // Convert the ImageProxy to MP Image and feed it to LandmarkerHelper.
@@ -504,11 +477,11 @@ class LandmarkerHelper(
         val poseResult = results?.poseResults ?: emptyList()
 
         // Extract the selected landmarks and their coordinates
-//        val landmarkData = extractLandmarkData(selectedColumns, faceResult.get(0), handResult.get(0), poseResult.get(0)) // TODO: this is the real deal
-        val allFrames = readCSVFileFromAssets(context, "hello_Raizel.csv")
+        val landmarkData = extractLandmarkData(selectedColumns, faceResult.get(0), handResult.get(0), poseResult.get(0)) // TODO: this is the real deal
+//        val allFrames = readCSVFileFromAssets(context, "hello_Raizel.csv")
 
-        for (frame in allFrames) {
-            val landmarkData = frame
+//        for (frame in allFrames) {
+//            val landmarkData = frame
 
         val nonNullList: List<Float> = landmarkData.map {
             it ?: 0.0f
@@ -529,11 +502,24 @@ class LandmarkerHelper(
         // Step 3: Wrap the FloatArray into an array of FloatArray
 //        val arrayOfFloatArray: Array<FloatArray> = arrayOf(floatArray)
 
+        // Get the current time using Calendar
+        val calendar = Calendar.getInstance()
+        val currentTime = calendar.time
+
+        // Format the time
+        val formatter = SimpleDateFormat("HH:mm:ss", Locale.getDefault())
+        val formattedTime = formatter.format(currentTime)
+
+
+        // Print the current time to the log
+        Log.d("Time", "Current Time: $formattedTime , current num of frames: ${arrayOfFloatArray.size}")
+
+
         if (arrayOfFloatArray.size >= 15) {
             runAsl(arrayOfFloatArray, tfliteModel)
         }
 //        runAsl(arrayOfFloatArray, tfliteModel)
-
+        Log.d("num frames", "${arrayOfFloatArray.size}")
         Log.d("landmarkData", "This is landmarkData: $landmarkData");
 
         val inferenceTime = results?.inferenceTime ?: 0
@@ -551,7 +537,7 @@ class LandmarkerHelper(
             )
         )
     }
-    }
+//    }
 
     // Run landmark detection using MediaPipe Landmarker APIs
     @VisibleForTesting
