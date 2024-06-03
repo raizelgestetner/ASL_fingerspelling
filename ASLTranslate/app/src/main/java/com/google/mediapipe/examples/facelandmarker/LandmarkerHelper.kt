@@ -23,6 +23,19 @@ import com.google.mediapipe.tasks.vision.handlandmarker.HandLandmarkerResult
 import com.google.mediapipe.tasks.vision.poselandmarker.PoseLandmarker
 import com.google.mediapipe.tasks.vision.poselandmarker.PoseLandmarkerResult
 import java.util.Arrays
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Bundle
+import android.os.Environment
+import android.widget.Toast
+import androidx.appcompat.app.AppCompatActivity
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
+import java.io.BufferedReader
+import java.io.File
+import java.io.FileReader
+import java.io.IOException
+import java.io.InputStreamReader
 
 class LandmarkerHelper(
     var minFaceDetectionConfidence: Float = DEFAULT_FACE_DETECTION_CONFIDENCE,
@@ -330,6 +343,7 @@ class LandmarkerHelper(
             }
         }
 
+
         try {
             val baseOptions = baseOptionBuilder.build()
             // Create an option builder with base options and specific
@@ -371,6 +385,69 @@ class LandmarkerHelper(
         }
     }
 
+
+    // Load real frames from scv for debugging
+
+    fun readCSVFileFromAssets(context: Context, fileName: String): List<List<Float>> {
+        val listOfFloatLists = mutableListOf<List<Float>>()
+        try {
+            val inputStream = context.assets.open(fileName)
+            BufferedReader(InputStreamReader(inputStream)).use { br ->
+                var line: String?
+
+                // Skip the first line (headers)
+                br.readLine()
+
+                while (br.readLine().also { line = it } != null) {
+                    val floatList = mutableListOf<Float>()
+                    val values = line!!.split(",")
+                    for (value in values) {
+                        try {
+                            floatList.add(value.trim().toFloat())
+                        } catch (e: NumberFormatException) {
+                            Log.e("readCSVFileFromAssets", "Error parsing float value from line: $value", e)
+                        }
+                    }
+                    listOfFloatLists.add(floatList)
+                }
+            }
+        } catch (e: IOException) {
+            Log.e("readCSVFileFromAssets", "Error reading CSV file from assets", e)
+        }
+        return listOfFloatLists
+    }
+    private fun readCSVFile(filename: String): MutableList<Float> {
+        val csvFile = File(Environment.getExternalStorageDirectory(), filename)
+        val floatList = mutableListOf<Float>()
+        if (csvFile.exists()) {
+
+            try {
+                BufferedReader(FileReader(csvFile)).use { br ->
+                    var line: String?
+                    while (br.readLine().also { line = it } != null) {
+                        try {
+                            val value = line!!.trim().toFloat()
+                            floatList.add(value)
+                        } catch (e: NumberFormatException) {
+                            Log.e(TAG, "Error parsing float value from line: $line", e)
+                        }
+                    }
+                }
+            } catch (e: IOException) {
+                Log.e(TAG, "Error reading CSV file", e)
+            }
+
+            // Now floatList contains all the float values from the CSV file
+//            for (f in floatList) {
+//                Log.d(TAG, "Float value: $f")
+//            }
+        } else {
+            Log.e(TAG, "CSV file does not exist")
+        }
+        return floatList
+    }
+
+
     // Convert the ImageProxy to MP Image and feed it to LandmarkerHelper.
     fun detectLiveStream(
             imageProxy: ImageProxy,
@@ -386,11 +463,11 @@ class LandmarkerHelper(
 
         // Copy out RGB bits from the frame to a bitmap buffer
         val bitmapBuffer =
-                Bitmap.createBitmap(
-                        imageProxy.width,
-                        imageProxy.height,
-                        Bitmap.Config.ARGB_8888
-                )
+            Bitmap.createBitmap(
+                imageProxy.width,
+                imageProxy.height,
+                Bitmap.Config.ARGB_8888
+            )
         imageProxy.use { bitmapBuffer.copyPixelsFromBuffer(imageProxy.planes[0].buffer) }
         imageProxy.close()
 
@@ -401,16 +478,16 @@ class LandmarkerHelper(
             // flip image if user use front camera
             if (isFrontCamera) {
                 postScale(
-                        -1f,
-                        1f,
-                        imageProxy.width.toFloat(),
-                        imageProxy.height.toFloat()
+                    -1f,
+                    1f,
+                    imageProxy.width.toFloat(),
+                    imageProxy.height.toFloat()
                 )
             }
         }
         val rotatedBitmap = Bitmap.createBitmap(
-                bitmapBuffer, 0, 0, bitmapBuffer.width, bitmapBuffer.height,
-                matrix, true
+            bitmapBuffer, 0, 0, bitmapBuffer.width, bitmapBuffer.height,
+            matrix, true
         )
 
         // Convert the input Bitmap object to an MPImage object to run inference
@@ -427,10 +504,17 @@ class LandmarkerHelper(
         val poseResult = results?.poseResults ?: emptyList()
 
         // Extract the selected landmarks and their coordinates
-        val landmarkData = extractLandmarkData(selectedColumns, faceResult.get(0), handResult.get(0), poseResult.get(0))
+//        val landmarkData = extractLandmarkData(selectedColumns, faceResult.get(0), handResult.get(0), poseResult.get(0)) // TODO: this is the real deal
+        val allFrames = readCSVFileFromAssets(context, "hello_Raizel.csv")
 
+        for (frame in allFrames) {
+            val landmarkData = frame
+
+        val nonNullList: List<Float> = landmarkData.map {
+            it ?: 0.0f
+        } // or list.map { it ?: 0.0f } to provide a default value of 0.0f
         // Step 1: Filter out null values or provide a default value
-        val nonNullList: List<Float> = landmarkData.map { it ?: 0.0f } // or list.map { it ?: 0.0f } to provide a default value of 0.0f
+
 
         // Step 2: Convert the list of non-nullable floats to FloatArray
         val floatArray: FloatArray = nonNullList.toFloatArray()
@@ -466,6 +550,7 @@ class LandmarkerHelper(
                 inputWidth
             )
         )
+    }
     }
 
     // Run landmark detection using MediaPipe Landmarker APIs
