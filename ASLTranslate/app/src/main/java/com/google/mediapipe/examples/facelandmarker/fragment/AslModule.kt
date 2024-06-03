@@ -84,7 +84,7 @@ class TFLiteModel(private val context: Context) {
     }
 
 //    fun runModel(frames: Array<FloatArray>): Map<String, Array<FloatArray>> {
-    fun runModel(frames: Array<FloatArray>): FloatArray {
+    fun runModel(frames: Array<FloatArray>): String {
 
 
     // Required signature and output
@@ -277,7 +277,7 @@ class TFLiteModel(private val context: Context) {
 //    val outputArray = FloatArray(outputBuffer.asFloatBuffer().remaining())
 //    outputBuffer.asFloatBuffer().get(outputArray)
 //
-    return FloatArray(0)
+    return predictionStr
     }
 
     private fun convertArrayToByteBuffer(array: Array<FloatArray>): ByteBuffer {

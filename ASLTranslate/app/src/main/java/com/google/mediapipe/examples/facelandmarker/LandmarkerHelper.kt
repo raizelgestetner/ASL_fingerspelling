@@ -23,17 +23,7 @@ import com.google.mediapipe.tasks.vision.handlandmarker.HandLandmarkerResult
 import com.google.mediapipe.tasks.vision.poselandmarker.PoseLandmarker
 import com.google.mediapipe.tasks.vision.poselandmarker.PoseLandmarkerResult
 import java.util.Arrays
-import android.Manifest
-import android.content.pm.PackageManager
-import android.os.Bundle
-import android.os.Environment
-import android.widget.Toast
-import androidx.appcompat.app.AppCompatActivity
-import androidx.core.app.ActivityCompat
-import androidx.core.content.ContextCompat
 import java.io.BufferedReader
-import java.io.File
-import java.io.FileReader
 import java.io.IOException
 import java.io.InputStreamReader
 import java.text.SimpleDateFormat
@@ -464,13 +454,25 @@ class LandmarkerHelper(
         )
 
         // Convert the input Bitmap object to an MPImage object to run inference
-        val mpImage = BitmapImageBuilder(rotatedBitmap).build()
+//        val mpImage = BitmapImageBuilder(rotatedBitmap).build()
 
 
         // TODO: change this to detectImage!
 //        detectAsync(mpImage, frameTime)
 
+        // Start time measurement
+        val startTime = System.nanoTime()
+
         var results = detectImage(rotatedBitmap)
+
+        // End time measurement
+        val endTime = System.nanoTime()
+
+// Calculate the duration in milliseconds
+        val duration = (endTime - startTime) / 1_000_000.0
+
+// Print the duration
+        Log.d("Performance - MediaPipe", "Time taken: $duration ms, results: $results")
 
         val faceResult = results?.faceResults ?: emptyList()
         val handResult = results?.handResults ?: emptyList()
@@ -507,16 +509,25 @@ class LandmarkerHelper(
         val currentTime = calendar.time
 
         // Format the time
-        val formatter = SimpleDateFormat("HH:mm:ss", Locale.getDefault())
+        val formatter = SimpleDateFormat("ss:SSS", Locale.getDefault())
         val formattedTime = formatter.format(currentTime)
 
 
         // Print the current time to the log
-        Log.d("Time", "Current Time: $formattedTime , current num of frames: ${arrayOfFloatArray.size}")
-
+        Log.d("Time - function", "Current Time: $formattedTime , current num of frames: ${arrayOfFloatArray.size}")
+        var predictedSTR = "Waiting for more frames..."
 
         if (arrayOfFloatArray.size >= 15) {
-            runAsl(arrayOfFloatArray, tfliteModel)
+            // Start time measurement
+            val startTime = System.nanoTime()
+            predictedSTR =  runAsl(arrayOfFloatArray, tfliteModel)
+            // End time measurement
+            val endTime = System.nanoTime()
+
+// Calculate the duration in milliseconds
+            val duration = (endTime - startTime) / 1_000_000.0
+
+            Log.d("Performance - ASL", "Time taken: $duration ms, results: $results")
         }
 //        runAsl(arrayOfFloatArray, tfliteModel)
         Log.d("num frames", "${arrayOfFloatArray.size}")
@@ -533,7 +544,8 @@ class LandmarkerHelper(
                 poseResult,
                 inferenceTime,
                 inputHeight,
-                inputWidth
+                inputWidth,
+                predictedSTR
             )
         )
     }
@@ -666,7 +678,7 @@ class LandmarkerHelper(
         }
     }
 
-    private fun runAsl(frames : Array<FloatArray>, model: TFLiteModel) {
+    private fun runAsl(frames : Array<FloatArray>, model: TFLiteModel) : String {
 
 // Usage
 //        val frames: Array<FloatArray> = Array(20) { FloatArray(390) { 0.5f } }// Your input data as a 2D array of float values
@@ -674,7 +686,7 @@ class LandmarkerHelper(
 //        val output = model.runModel(frames)
         // Run inference on each frame
         val results = mutableListOf<FloatArray>()
-        val output = model.runModel(frames)
+        val predictionStr = model.runModel(frames)
 //        for (frame in frames) {
 //            Log.d("ASL", "cur frame : ${Arrays.toString(frame)}")
 ////            Log.d("ASL", "in loop")
@@ -682,9 +694,11 @@ class LandmarkerHelper(
 //            results.add(output)
 //        }
         Log.d("ASL", "Final Output: ${Arrays.deepToString(results.toTypedArray())}")
-        val predictionStr = results.joinToString("") { model.getPredictionString(it) }
+//        val predictionStr = results.joinToString("") { model.getPredictionString(it) }
         Log.d("ASL", "Prediction: $predictionStr")
 //        printOutput(output)
+
+        return predictionStr
     }
 
     // Accepted a Bitmap and runs landmarker inference on it to return
@@ -838,6 +852,7 @@ class LandmarkerHelper(
             val inferenceTime: Long,
             val inputImageHeight: Int,
             val inputImageWidth: Int,
+            val prediction: String = ""
     )
 
     interface LandmarkerListener {
