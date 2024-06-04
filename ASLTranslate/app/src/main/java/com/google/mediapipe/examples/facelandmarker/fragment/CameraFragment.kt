@@ -285,7 +285,7 @@ class CameraFragment : Fragment(), LandmarkerHelper.LandmarkerListener {
                 _fragmentCameraBinding!!.predictedTextView.text = resultBundle.prediction
 
                 // Check if the predicted string has more than 30 words
-                if (resultBundle.prediction.length > 5) {
+                if (resultBundle.prediction.length > 30) {
                     stopVideoRecording()
 
                     // Update the TextView to show the message that max length has been reached
