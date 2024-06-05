@@ -23,7 +23,7 @@ import com.example.asltransslate.LandmarkerHelper
  */
 class MainViewModel : ViewModel() {
 
-    private var _delegate: Int = LandmarkerHelper.DELEGATE_CPU
+    private var _delegate: Int = LandmarkerHelper.DELEGATE_GPU
     private var _minFaceDetectionConfidence: Float =
         LandmarkerHelper.DEFAULT_FACE_DETECTION_CONFIDENCE
     private var _minFaceTrackingConfidence: Float = LandmarkerHelper
