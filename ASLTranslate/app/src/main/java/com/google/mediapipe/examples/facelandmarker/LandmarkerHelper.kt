@@ -414,57 +414,24 @@ class LandmarkerHelper(
 
     // Convert the ImageProxy to MP Image and feed it to LandmarkerHelper.
     fun detectLiveStream(
-            imageProxy: ImageProxy,
-            isFrontCamera: Boolean,
-            tfliteModel: TFLiteModel
+        bitmap: Bitmap,
+        isFrontCamera: Boolean,
+        tfliteModel: TFLiteModel
     ) {
-//        if (runningMode != RunningMode.LIVE_STREAM) {
-//            throw IllegalArgumentException(
-//                    "Attempting to call detectLiveStream while not using RunningMode.LIVE_STREAM"
-//            )
-//        }
-        val frameTime = SystemClock.uptimeMillis()
-
-        // Copy out RGB bits from the frame to a bitmap buffer
-        val bitmapBuffer =
-            Bitmap.createBitmap(
-                imageProxy.width,
-                imageProxy.height,
-                Bitmap.Config.ARGB_8888
-            )
-        imageProxy.use { bitmapBuffer.copyPixelsFromBuffer(imageProxy.planes[0].buffer) }
-        imageProxy.close()
-
         val matrix = Matrix().apply {
-            // Rotate the frame received from the camera to be in the same direction as it'll be shown
-            postRotate(imageProxy.imageInfo.rotationDegrees.toFloat())
-
-            // flip image if user use front camera
+            postRotate(if (isFrontCamera) 180f else 0f) // Adjust based on camera orientation
             if (isFrontCamera) {
-                postScale(
-                    -1f,
-                    1f,
-                    imageProxy.width.toFloat(),
-                    imageProxy.height.toFloat()
-                )
+                postScale(-1f, 1f, bitmap.width.toFloat() / 2, bitmap.height.toFloat() / 2)
             }
         }
+
         val rotatedBitmap = Bitmap.createBitmap(
-            bitmapBuffer, 0, 0, bitmapBuffer.width, bitmapBuffer.height,
-            matrix, true
+            bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true
         )
 
-        // Convert the input Bitmap object to an MPImage object to run inference
-//        val mpImage = BitmapImageBuilder(rotatedBitmap).build()
-
-
-        // TODO: change this to detectImage!
-//        detectAsync(mpImage, frameTime)
-
-        // Start time measurement
         val startTime = System.nanoTime()
 
-        var results = detectImage(rotatedBitmap)
+        val results = detectImage(rotatedBitmap)
 
         // End time measurement
         val endTime = System.nanoTime()

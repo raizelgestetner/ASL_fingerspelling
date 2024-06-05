@@ -17,6 +17,7 @@ package com.google.mediapipe.examples.facelandmarker.fragment
 
 import android.annotation.SuppressLint
 import android.content.res.Configuration
+import android.graphics.Bitmap
 import android.os.Bundle
 import android.util.Log
 import android.view.LayoutInflater
@@ -45,7 +46,9 @@ import com.google.mediapipe.examples.facelandmarker.MainViewModel
 import com.google.mediapipe.examples.facelandmarker.R
 import com.google.mediapipe.examples.facelandmarker.databinding.FragmentCameraBinding
 import com.google.mediapipe.tasks.vision.core.RunningMode
+import java.nio.ByteBuffer
 import java.util.Locale
+import java.util.concurrent.ArrayBlockingQueue
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
@@ -69,12 +72,18 @@ class CameraFragment : Fragment(), LandmarkerHelper.LandmarkerListener {
 
     private var preview: Preview? = null
     private var imageAnalyzer: ImageAnalysis? = null
+    private val MAX_QUEUE_SIZE = 100 // Set this to the desired maximum size of the queue
+    private val frameQueue = ArrayBlockingQueue<Triple<ByteArray, Int, Int>>(MAX_QUEUE_SIZE) // Capacity of 100 frames
+    private var imageCounter = 0
     private var camera: Camera? = null
     private var cameraProvider: ProcessCameraProvider? = null
     private var cameraFacing = CameraSelector.LENS_FACING_FRONT
 
     /** Blocking ML operations are performed using this executor */
-    private lateinit var backgroundExecutor: ExecutorService
+//    private lateinit var backgroundExecutor: ExecutorService
+
+    private val backgroundExecutor = Executors.newSingleThreadExecutor()
+    private val frameProcessingExecutor = Executors.newSingleThreadExecutor()
 
     override fun onResume() {
         super.onResume()
@@ -141,7 +150,7 @@ class CameraFragment : Fragment(), LandmarkerHelper.LandmarkerListener {
 //        }
 
         // Initialize our background executor
-        backgroundExecutor = Executors.newSingleThreadExecutor()
+//        backgroundExecutor = Executors.newSingleThreadExecutor()
 
         // Wait for the views to be properly laid out
         fragmentCameraBinding.viewFinder.post {
@@ -204,15 +213,36 @@ class CameraFragment : Fragment(), LandmarkerHelper.LandmarkerListener {
         imageAnalyzer =
             ImageAnalysis.Builder().setTargetAspectRatio(AspectRatio.RATIO_4_3)
                 .setTargetRotation(fragmentCameraBinding.viewFinder.display.rotation)
-                .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+                    .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
                 .setOutputImageFormat(ImageAnalysis.OUTPUT_IMAGE_FORMAT_RGBA_8888)
                 .build()
                 // The analyzer can then be assigned to the instance
                 .also {
                     it.setAnalyzer(backgroundExecutor) { image ->
-                        detectFace(image)
+                        imageCounter++
+                        if (imageCounter % 3 == 0) {  // Only process every third image
+                            val width = image.width
+                            val height = image.height
+                            val buffer = image.planes[0].buffer
+                            val data = ByteArray(buffer.capacity())
+                            buffer.get(data)
+
+                            // Ensure the queue is not full
+                            synchronized(frameQueue) {
+                                if (frameQueue.size >= MAX_QUEUE_SIZE) {
+                                    frameQueue.poll() // Remove the oldest element
+                                    Log.d("CameraFragment", "Frame dropped")
+                                }
+                                frameQueue.add(Triple(data, width, height))
+                            }
+                        }
+                        // Close the original image in either case
+                        image.close()
+
                     }
                 }
+
+        startFrameProcessing()
 
         // Must unbind the use-cases before rebinding them
         cameraProvider.unbindAll()
@@ -231,15 +261,62 @@ class CameraFragment : Fragment(), LandmarkerHelper.LandmarkerListener {
         }
     }
 
-    private fun detectFace(imageProxy: ImageProxy) {
+//    private fun addImageToQueue(image: ImageProxy) {
+//        Log.d("addImageToQueue", "This is my message: addImageToQueue");
+//        if (!frameQueue.offer(image)) {
+//            image.close() // Close the image if the queue is full
+//        }
+//    }
+
+    private fun startFrameProcessing() {
+        frameProcessingExecutor.execute {
+            while (!Thread.currentThread().isInterrupted) {
+                try {
+                    // Take an image from the queue, blocking if necessary until an element becomes available
+                    val (imageData, width, height) = frameQueue.take()
+                    val bitmap = byteArrayToBitmap(imageData, width, height)
+                    detectFace(bitmap)
+                } catch (e: InterruptedException) {
+                    Thread.currentThread().interrupt() // Restore interruption status
+                    break
+                } catch (e: Exception) {
+                    // Handle other exceptions
+                    Log.e("CameraFragment", "Error processing frame", e)
+                }
+            }
+        }
+    }
+
+
+
+    private fun byteArrayToBitmap(imageData: ByteArray, width: Int, height: Int): Bitmap {
+        val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+        val buffer = ByteBuffer.wrap(imageData)
+        bitmap.copyPixelsFromBuffer(buffer)
+        return bitmap
+    }
+
+
+    private fun detectFace(bitmap: Bitmap) {
         val model = context?.let { TFLiteModel(it) }
         model?.loadModel("model.tflite")
         model?.loadCharacterMap("character_to_prediction_index.json")
+
+        // Here you process the Bitmap, not the ImageProxy
         LandmarkerHelper.detectLiveStream(
-            imageProxy = imageProxy,
+            bitmap = bitmap,
             isFrontCamera = cameraFacing == CameraSelector.LENS_FACING_FRONT,
             tfliteModel = model!!
         )
+
+        // No need to close ImageProxy here
+    }
+
+
+    override fun onDestroy() {
+        super.onDestroy()
+        backgroundExecutor.shutdownNow()
+        frameQueue.clear()
     }
 
     override fun onConfigurationChanged(newConfig: Configuration) {
