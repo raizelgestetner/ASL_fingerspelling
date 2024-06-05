@@ -282,7 +282,9 @@ class CameraFragment : Fragment(), LandmarkerHelper.LandmarkerListener {
         activity?.runOnUiThread {
             if (_fragmentCameraBinding != null) {
 
-                _fragmentCameraBinding!!.predictedTextView.text = resultBundle.prediction
+                if (!(_fragmentCameraBinding!!.predictedTextView.text != "Waiting for more frames..."
+                    && resultBundle.prediction == "Waiting for more frames..."))
+                    _fragmentCameraBinding!!.predictedTextView.text = resultBundle.prediction
 
                 // Check if the predicted string has more than 30 words
                 if (resultBundle.prediction.length > 30) {

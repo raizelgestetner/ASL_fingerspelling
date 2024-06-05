@@ -47,7 +47,8 @@ class LandmarkerHelper(
     val context: Context,
         // this listener is only used when running in RunningMode.LIVE_STREAM
     val landmarkerHelperListener: LandmarkerListener? = null,
-    var arrayOfFloatArray: Array<FloatArray>
+    var arrayOfFloatArray: Array<FloatArray>,
+    var lastArrayOfFloatArraySize: Int = 0
 ) {
 
     // For this example, these need to be vars so they can be reset on changes.
@@ -517,14 +518,15 @@ class LandmarkerHelper(
         Log.d("Time - function", "Current Time: $formattedTime , current num of frames: ${arrayOfFloatArray.size}")
         var predictedSTR = "Waiting for more frames..."
 
-        if (arrayOfFloatArray.size >= 15) {
+        if (arrayOfFloatArray.size >= 20 && arrayOfFloatArray.size - lastArrayOfFloatArraySize >= 5) {
+            lastArrayOfFloatArraySize = arrayOfFloatArray.size
             // Start time measurement
             val startTime = System.nanoTime()
-            predictedSTR =  runAsl(arrayOfFloatArray, tfliteModel)
+            predictedSTR = runAsl(arrayOfFloatArray, tfliteModel)
             // End time measurement
             val endTime = System.nanoTime()
 
-// Calculate the duration in milliseconds
+            // Calculate the duration in milliseconds
             val duration = (endTime - startTime) / 1_000_000.0
 
             Log.d("Performance - ASL", "Time taken: $duration ms, results: $results")
