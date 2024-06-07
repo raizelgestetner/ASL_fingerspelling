@@ -20,6 +20,7 @@ class OpeningFragment : Fragment() {
         val startButton: FloatingActionButton = view.findViewById(R.id.btnStartTranslate)
 
         startButton.setOnClickListener {
+
             findNavController().navigate(R.id.action_openingFragment_to_cameraFragment)
         }
 

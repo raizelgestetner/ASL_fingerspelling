@@ -23,6 +23,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.AdapterView
+import android.widget.Button
 import android.widget.Toast
 import androidx.camera.core.Preview
 import androidx.camera.core.CameraSelector
@@ -41,6 +42,7 @@ import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.viewpager2.widget.ViewPager2.SCROLL_STATE_DRAGGING
 import com.example.asltransslate.LandmarkerHelper
+import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.google.mediapipe.examples.facelandmarker.MainViewModel
 import com.google.mediapipe.examples.facelandmarker.R
 import com.google.mediapipe.examples.facelandmarker.databinding.FragmentCameraBinding
@@ -57,6 +59,8 @@ class CameraFragment : Fragment(), LandmarkerHelper.LandmarkerListener {
     }
 
     private var _fragmentCameraBinding: FragmentCameraBinding? = null
+
+
 
     private val fragmentCameraBinding
         get() = _fragmentCameraBinding!!
@@ -127,6 +131,9 @@ class CameraFragment : Fragment(), LandmarkerHelper.LandmarkerListener {
     ): View {
         _fragmentCameraBinding =
             FragmentCameraBinding.inflate(inflater, container, false)
+
+        val view = inflater.inflate(R.layout.fragment_camera, container, false)
+
 
         return fragmentCameraBinding.root
     }
@@ -298,6 +305,26 @@ class CameraFragment : Fragment(), LandmarkerHelper.LandmarkerListener {
                 _fragmentCameraBinding!!.fabRecord.setOnClickListener {
                     restartFragment()
                 }
+
+                _fragmentCameraBinding!!.finishSign.setOnClickListener {
+                    var newPrediction: String
+                    if (resultBundle.prediction == "Waiting for more frames..."){
+                        newPrediction= LandmarkerHelper.finishSign()
+                        _fragmentCameraBinding!!.predictedTextView.text = "NEW prediction: ${newPrediction}"
+                    }
+                    else{
+                        _fragmentCameraBinding!!.predictedTextView.text = "prediction: ${resultBundle.prediction}"
+                    }
+                    stopVideoRecording()
+
+
+                }
+
+
+
+
+
+
 //                if (fragmentCameraBinding.recyclerviewResults.scrollState != SCROLL_STATE_DRAGGING) {
 //                    faceBlendshapesResultAdapter.updateResults(resultBundle.faceResults.firstOrNull())
 //                    faceBlendshapesResultAdapter.notifyDataSetChanged()

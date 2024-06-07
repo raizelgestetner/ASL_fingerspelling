@@ -518,7 +518,7 @@ class LandmarkerHelper(
         Log.d("Time - function", "Current Time: $formattedTime , current num of frames: ${arrayOfFloatArray.size}")
         var predictedSTR = "Waiting for more frames..."
 
-        if (arrayOfFloatArray.size >= 20 && arrayOfFloatArray.size - lastArrayOfFloatArraySize >= 5) {
+        if (arrayOfFloatArray.size >= 15 && arrayOfFloatArray.size - lastArrayOfFloatArraySize >= 5) {
             lastArrayOfFloatArraySize = arrayOfFloatArray.size
             // Start time measurement
             val startTime = System.nanoTime()
@@ -547,11 +547,40 @@ class LandmarkerHelper(
                 inferenceTime,
                 inputHeight,
                 inputWidth,
+                arrayOfFloatArray,
                 predictedSTR
             )
         )
     }
 //    }
+
+    fun finishSign(): String {
+        val tfliteModel = context?.let { TFLiteModel(it) }
+        tfliteModel?.loadModel("model.tflite")
+        tfliteModel?.loadCharacterMap("character_to_prediction_index.json")
+//        val tfliteModel = TFLiteModel(context)
+        if (arrayOfFloatArray.size >= 15){
+            return runAsl(arrayOfFloatArray, tfliteModel!!)
+        }
+        val numMissingFrames = 15 - arrayOfFloatArray.size
+
+        // Retrieve the last FloatArray
+        val lastElement = arrayOfFloatArray.last()
+
+        // Append the last FloatArray to 'a' four times
+        val newA = arrayOfFloatArray.toMutableList()
+        repeat(numMissingFrames) {
+            newA.add(lastElement)
+        }
+
+        // Convert back to Array<FloatArray>
+        val arrayOfFloatArray = newA.toTypedArray()
+        return runAsl(arrayOfFloatArray, tfliteModel!!)
+
+
+
+    }
+
 
     // Run landmark detection using MediaPipe Landmarker APIs
     @VisibleForTesting
@@ -675,7 +704,9 @@ class LandmarkerHelper(
                     poseResultList,
                     inferenceTimePerFrameMs,
                     height,
-                    width
+                    width,
+                    arrayOfFloatArray
+
             )
         }
     }
@@ -735,7 +766,8 @@ class LandmarkerHelper(
                     poseResult?.let { listOf(it) } ?: emptyList(),
                     inferenceTimeMs,
                     image.height,
-                    image.width
+                    image.width,
+                    arrayOfFloatArray
             )
         } else {
             // If all landmarkers fail to detect, this is likely an error. Returning null
@@ -809,7 +841,8 @@ class LandmarkerHelper(
                 poseResult,
                 inferenceTime,
                 input.height,
-                input.width
+                input.width,
+                arrayOfFloatArray
             )
         )
     }
@@ -854,6 +887,7 @@ class LandmarkerHelper(
             val inferenceTime: Long,
             val inputImageHeight: Int,
             val inputImageWidth: Int,
+            val arrayOfFloatArray:Array<FloatArray>,
             val prediction: String = ""
     )
 
