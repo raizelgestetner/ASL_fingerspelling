@@ -800,36 +800,36 @@ class LandmarkerHelper(
     ): List<Float?> {
         val landmarkData = mutableListOf<Float?>()
 
-        val getCoordinate: (NormalizedLandmark, String) -> Float? = { landmark, coordinate ->
-            when (coordinate) {
-                "x" -> landmark.x()
-                "y" -> landmark.y()
-                "z" -> landmark.z()
-                else -> null
-            }
-        }
-
-        for (column in selectedColumns) {
+        selectedColumns.forEach { column ->
             val splitted = column.split('_')
-            val (coordinate, category, landmarkIndex) = if (splitted.size == 3) {
-                Triple(splitted[0], splitted[1], splitted[2].toInt())
-            } else {
-                Triple(splitted[0][0].toString(), "${splitted[1]}_${splitted[2]}", splitted[3].toInt())
+            val (coordinate, category, landmarkIndex) = when (splitted.size) {
+                3 -> Triple(splitted[0], splitted[1], splitted[2].toInt())
+                else -> Triple(splitted[0][0].toString(), "${splitted[1]}_${splitted[2]}", splitted[3].toInt())
             }
 
-            val tmp = when (category) {
-                "pose" -> poseResult?.landmarks()?.getOrNull(0)?.getOrNull(landmarkIndex)?.let { getCoordinate(it, coordinate) }
-                "face" -> faceResult?.faceLandmarks()?.getOrNull(0)?.getOrNull(landmarkIndex)?.let { getCoordinate(it, coordinate) }
-                "left_hand" -> handResult?.landmarks()?.getOrNull(0)?.getOrNull(landmarkIndex)?.let { getCoordinate(it, coordinate) }
-                "right_hand" -> handResult?.landmarks()?.getOrNull(1)?.getOrNull(landmarkIndex)?.let { getCoordinate(it, coordinate) }
+            val landmarks = when (category) {
+                "pose" -> poseResult?.landmarks()?.getOrNull(0)
+                "face" -> faceResult?.faceLandmarks()?.getOrNull(0)
+                "left_hand" -> handResult?.landmarks()?.getOrNull(0)
+                "right_hand" -> handResult?.landmarks()?.getOrNull(1)
                 else -> null
             }
+            val coordinateValue = landmarks?.getOrNull(landmarkIndex)?.let { landmark ->
+                when (coordinate) {
+                    "x" -> landmark.x()
+                    "y" -> landmark.y()
+                    "z" -> landmark.z()
+                    else -> null
+                }
+            }
 
-            landmarkData.add(tmp)
+            landmarkData.add(coordinateValue)
         }
 
         return landmarkData
     }
+
+
 
     private fun returnLivestreamResult(
         result: Any,
