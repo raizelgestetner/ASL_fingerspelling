@@ -453,19 +453,25 @@ class LandmarkerHelper(
         isFrontCamera: Boolean,
         tfliteModel: TFLiteModel
     ) {
-        val matrix = Matrix().apply {
-            // Adjust based on camera orientation
-            if (isFrontCamera) {
-                postRotate(270f) // Rotate 270 degrees to correct the orientation
-                postScale(-1f, 1f, bitmap.width.toFloat() / 2, bitmap.height.toFloat() / 2)
-            } else {
-                postRotate(90f) // Rotate 90 degrees to correct the orientation for a typical rear camera setup
-            }
-        }
+//        val matrix = Matrix().apply {
+//            // Adjust based on camera orientation
+//            if (isFrontCamera) {
+//                postRotate(270f) // Rotate 270 degrees to correct the orientation
+//                postScale(-0.5f, 0.5f) // Mirror and shrink to half size
+//            } else {
+//                postRotate(90f) // Rotate 90 degrees to correct the orientation for a typical rear camera setup
+//                postScale(0.5f, 0.5f) // Shrink to half size
+//            }
+//        }
+//
+//        val rotatedBitmap = Bitmap.createBitmap(
+//            bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true
+//        )
 
-        val rotatedBitmap = Bitmap.createBitmap(
-            bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true
-        )
+        val rotatedBitmap = bitmap
+
+        // Log the bitmap dimensions
+//        Log.d("Bitmap", "Bitmap dimensions: ${rotatedBitmap.width} x ${rotatedBitmap.height}")
 
 //        saveBitmapToGallery(rotatedBitmap, context, "hello_Raizel.png")
 

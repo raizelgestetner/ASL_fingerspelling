@@ -18,6 +18,7 @@ package com.google.mediapipe.examples.facelandmarker.fragment
 import android.annotation.SuppressLint
 import android.content.res.Configuration
 import android.graphics.Bitmap
+import android.graphics.Matrix
 import android.os.Bundle
 import android.util.Log
 import android.view.LayoutInflater
@@ -77,7 +78,7 @@ class CameraFragment : Fragment(), LandmarkerHelper.LandmarkerListener {
     private var preview: Preview? = null
     private var imageAnalyzer: ImageAnalysis? = null
     private val MAX_QUEUE_SIZE = 200 // Set this to the desired maximum size of the queue
-    private val frameQueue = ArrayBlockingQueue<Triple<ByteArray, Int, Int>>(MAX_QUEUE_SIZE) // Capacity of 100 frames
+    private val frameQueue = ArrayBlockingQueue<Triple<Bitmap, Int, Int>>(MAX_QUEUE_SIZE) // Capacity of 100 frames
     private var imageCounter = 0
     private var camera: Camera? = null
     private var cameraProvider: ProcessCameraProvider? = null
@@ -260,13 +261,25 @@ class CameraFragment : Fragment(), LandmarkerHelper.LandmarkerListener {
                             val data = ByteArray(buffer.capacity())
                             buffer.get(data)
 
+                            val bitmap = byteArrayToBitmap(data, width, height)
+
+                            val matrix = Matrix().apply {
+                                // Adjust based on camera orientation
+                                postRotate(270f) // Rotate 270 degrees to correct the orientation
+                                postScale(-0.5f, 0.5f) // Mirror and shrink to half size
+                            }
+
+                            val rotatedBitmap = Bitmap.createBitmap(
+                                bitmap, 0, 0, width, height, matrix, true
+                            )
+
                             // Ensure the queue is not full
                             synchronized(frameQueue) {
                                 if (frameQueue.size >= MAX_QUEUE_SIZE) {
                                     frameQueue.poll() // Remove the oldest element
                                     Log.d("frameQueue", "Frame dropped")
                                 }
-                                frameQueue.add(Triple(data, width, height))
+                                frameQueue.add(Triple(rotatedBitmap, width, height))
                             }
                         }
 
@@ -312,7 +325,7 @@ class CameraFragment : Fragment(), LandmarkerHelper.LandmarkerListener {
                     Log.d("QueueSize", "This is my QueueSize: ${frameQueue.size}")
                     // Take an image from the queue, blocking if necessary until an element becomes available
                     val (imageData, width, height) = frameQueue.take()
-                    val bitmap = byteArrayToBitmap(imageData, width, height)
+                    val bitmap = imageData
                     detectFace(bitmap)
 
                     if (frameQueue.size == 0) {
