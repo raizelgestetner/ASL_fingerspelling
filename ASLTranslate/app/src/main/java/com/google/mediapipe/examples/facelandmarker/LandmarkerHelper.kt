@@ -1,11 +1,14 @@
 package com.example.asltransslate
 
+import android.content.ContentValues
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Matrix
 import android.media.MediaMetadataRetriever
 import android.net.Uri
+import android.os.Environment
 import android.os.SystemClock
+import android.provider.MediaStore
 import android.util.Log
 import androidx.annotation.VisibleForTesting
 import androidx.camera.core.ImageProxy
@@ -24,10 +27,13 @@ import com.google.mediapipe.tasks.vision.poselandmarker.PoseLandmarker
 import com.google.mediapipe.tasks.vision.poselandmarker.PoseLandmarkerResult
 import java.util.Arrays
 import java.io.BufferedReader
+import java.io.File
+import java.io.FileOutputStream
 import java.io.IOException
 import java.io.InputStreamReader
 import java.text.SimpleDateFormat
 import java.util.Calendar
+import java.util.Date
 import java.util.Locale
 class LandmarkerHelper(
     var minFaceDetectionConfidence: Float = DEFAULT_FACE_DETECTION_CONFIDENCE,
@@ -410,6 +416,35 @@ class LandmarkerHelper(
         return listOfFloatLists
     }
 
+    fun saveBitmapToGallery(bitmap: Bitmap, context: Context, baseFileName: String) {
+        // Generate a unique timestamp
+        val timeStamp: String = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
+        val uniqueFileName = "$baseFileName$timeStamp.png"
+
+        val contentValues = ContentValues().apply {
+            put(MediaStore.MediaColumns.DISPLAY_NAME, uniqueFileName) // Use the unique file name
+            put(MediaStore.MediaColumns.MIME_TYPE, "image/png")
+            put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_PICTURES) // Save image to Pictures directory
+        }
+
+        val resolver = context.contentResolver
+        val uri = resolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, contentValues)
+        uri?.let {
+            try {
+                resolver.openOutputStream(it).use { outputStream ->
+                    bitmap.compress(Bitmap.CompressFormat.PNG, 100, outputStream)
+                }
+                Log.d("Save Bitmap", "Bitmap saved to Gallery: $uniqueFileName")
+            } catch (e: IOException) {
+                Log.e("Save Bitmap", "Error saving bitmap", e)
+            }
+        } ?: run {
+            Log.e("Save Bitmap", "Failed to create new MediaStore record.")
+        }
+    }
+
+
+
 
 
     // Convert the ImageProxy to MP Image and feed it to LandmarkerHelper.
@@ -419,15 +454,20 @@ class LandmarkerHelper(
         tfliteModel: TFLiteModel
     ) {
         val matrix = Matrix().apply {
-            postRotate(if (isFrontCamera) 180f else 0f) // Adjust based on camera orientation
+            // Adjust based on camera orientation
             if (isFrontCamera) {
+                postRotate(270f) // Rotate 270 degrees to correct the orientation
                 postScale(-1f, 1f, bitmap.width.toFloat() / 2, bitmap.height.toFloat() / 2)
+            } else {
+                postRotate(90f) // Rotate 90 degrees to correct the orientation for a typical rear camera setup
             }
         }
 
         val rotatedBitmap = Bitmap.createBitmap(
             bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true
         )
+
+//        saveBitmapToGallery(rotatedBitmap, context, "hello_Raizel.png")
 
         val startTime = System.nanoTime()
 

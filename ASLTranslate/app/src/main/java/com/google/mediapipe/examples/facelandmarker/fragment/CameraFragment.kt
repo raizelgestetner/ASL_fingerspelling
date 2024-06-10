@@ -76,7 +76,7 @@ class CameraFragment : Fragment(), LandmarkerHelper.LandmarkerListener {
 
     private var preview: Preview? = null
     private var imageAnalyzer: ImageAnalysis? = null
-    private val MAX_QUEUE_SIZE = 100 // Set this to the desired maximum size of the queue
+    private val MAX_QUEUE_SIZE = 200 // Set this to the desired maximum size of the queue
     private val frameQueue = ArrayBlockingQueue<Triple<ByteArray, Int, Int>>(MAX_QUEUE_SIZE) // Capacity of 100 frames
     private var imageCounter = 0
     private var camera: Camera? = null
@@ -88,6 +88,16 @@ class CameraFragment : Fragment(), LandmarkerHelper.LandmarkerListener {
 
     private val backgroundExecutor = Executors.newSingleThreadExecutor()
     private val frameProcessingExecutor = Executors.newSingleThreadExecutor()
+
+    var startTime = System.nanoTime() // Initial start time
+    var frameCount = 0
+    val VideostartTime = System.currentTimeMillis()
+    var IMAGEDIVIDER = 2
+
+    var videoTime = System.currentTimeMillis()
+    var processingTime = System.currentTimeMillis()
+
+    var stopVideo = false
 
     override fun onResume() {
         super.onResume()
@@ -220,14 +230,30 @@ class CameraFragment : Fragment(), LandmarkerHelper.LandmarkerListener {
         imageAnalyzer =
             ImageAnalysis.Builder().setTargetAspectRatio(AspectRatio.RATIO_4_3)
                 .setTargetRotation(fragmentCameraBinding.viewFinder.display.rotation)
-                    .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+                    .setBackpressureStrategy(ImageAnalysis.STRATEGY_BLOCK_PRODUCER)
                 .setOutputImageFormat(ImageAnalysis.OUTPUT_IMAGE_FORMAT_RGBA_8888)
                 .build()
                 // The analyzer can then be assigned to the instance
                 .also {
                     it.setAnalyzer(backgroundExecutor) { image ->
-                        imageCounter++
-                        if (imageCounter % 3 == 0) {  // Only process every third image
+                        frameCount++ // Increment total frame count
+                        imageCounter++ // Increment image counter
+                        if (frameCount == 1) { // Reset start time on the first frame
+                            startTime = System.nanoTime()
+                        }
+
+                        if (frameCount % 30 == 0) { // Calculate FPS every 30 frames
+                            val currentTime = System.nanoTime()
+                            val elapsedTimeInSeconds = (currentTime - startTime) / 1_000_000_000.0
+                            val fps = frameCount / elapsedTimeInSeconds
+                            Log.d("frameQueue", "FPS: $fps")
+
+                            // Reset for next measurement
+                            startTime = System.nanoTime()
+                            frameCount = 0
+                        }
+
+                        if (imageCounter % IMAGEDIVIDER == 0) { // Only process every third image
                             val width = image.width
                             val height = image.height
                             val buffer = image.planes[0].buffer
@@ -238,16 +264,17 @@ class CameraFragment : Fragment(), LandmarkerHelper.LandmarkerListener {
                             synchronized(frameQueue) {
                                 if (frameQueue.size >= MAX_QUEUE_SIZE) {
                                     frameQueue.poll() // Remove the oldest element
-                                    Log.d("CameraFragment", "Frame dropped")
+                                    Log.d("frameQueue", "Frame dropped")
                                 }
                                 frameQueue.add(Triple(data, width, height))
                             }
                         }
+
                         // Close the original image in either case
                         image.close()
-
                     }
                 }
+
 
         startFrameProcessing()
 
@@ -276,13 +303,32 @@ class CameraFragment : Fragment(), LandmarkerHelper.LandmarkerListener {
 //    }
 
     private fun startFrameProcessing() {
+        // print and save start time
+        val startTime = System.currentTimeMillis()
+        Log.d("frameQueue", "start time: $startTime")
         frameProcessingExecutor.execute {
             while (!Thread.currentThread().isInterrupted) {
                 try {
+                    Log.d("QueueSize", "This is my QueueSize: ${frameQueue.size}")
                     // Take an image from the queue, blocking if necessary until an element becomes available
                     val (imageData, width, height) = frameQueue.take()
                     val bitmap = byteArrayToBitmap(imageData, width, height)
                     detectFace(bitmap)
+
+                    if (frameQueue.size == 0) {
+                        // print and save end time
+                        val endTime = System.currentTimeMillis()
+                        processingTime = endTime - startTime
+                        Log.d("frameQueue", "total process end time: $endTime")
+                        Log.d("frameQueue", "total process time in seconds: ${(endTime - startTime) / 1000}")
+                        Log.d("frameQueue", "total process time in milliseconds: ${endTime - startTime}")
+
+                        // video time vs processing time
+                        Log.d("frameQueue", "video time: ${videoTime / 1000}")
+                        Log.d("frameQueue", "processing time: ${processingTime / 1000}")
+                        Log.d("frameQueue", "video time vs processing time: ${(videoTime - processingTime) / 1000}")
+                        // use imageCounter to calculate actual FPS
+                    }
                 } catch (e: InterruptedException) {
                     Thread.currentThread().interrupt() // Restore interruption status
                     break
@@ -346,6 +392,7 @@ class CameraFragment : Fragment(), LandmarkerHelper.LandmarkerListener {
 
 
     private fun stopVideoRecording() {
+        stopVideo = true
         try {
             // Assuming you have bound a VideoCapture use case
             cameraProvider?.unbindAll()  // This will stop any ongoing recording
@@ -366,9 +413,23 @@ class CameraFragment : Fragment(), LandmarkerHelper.LandmarkerListener {
         activity?.runOnUiThread {
             if (_fragmentCameraBinding != null) {
 
-                if (!(_fragmentCameraBinding!!.predictedTextView.text != "Waiting for more frames..."
+                var textToShow = _fragmentCameraBinding!!.predictedTextView.text.toString().substringBefore("\n")
+
+
+                if (!(textToShow != "Waiting for more frames..."
                     && resultBundle.prediction == "Waiting for more frames..."))
-                    _fragmentCameraBinding!!.predictedTextView.text = resultBundle.prediction
+                    textToShow = resultBundle.prediction
+
+                // if frameQueue.size not empty, then add "still processing" to the predictedTextView
+                if (frameQueue.size > 0 && stopVideo) {
+                    textToShow = buildString {
+                        append(textToShow)
+                        append("\nStill processing... wait!")
+                        append("\n(Has ${frameQueue.size} frames left)")
+                    }
+                }
+
+                _fragmentCameraBinding!!.predictedTextView.text = textToShow
 
                 // Check if the predicted string has more than 30 words
                 if (resultBundle.prediction.length > 30) {
@@ -384,43 +445,27 @@ class CameraFragment : Fragment(), LandmarkerHelper.LandmarkerListener {
                 }
 
                 _fragmentCameraBinding!!.finishSign.setOnClickListener {
-                    var newPrediction: String
-                    if (resultBundle.prediction == "Waiting for more frames..."){
-                        newPrediction= LandmarkerHelper.finishSign()
-                        _fragmentCameraBinding!!.predictedTextView.text = "NEW prediction: ${newPrediction}"
-                    }
-                    else{
-                        _fragmentCameraBinding!!.predictedTextView.text = "prediction: ${resultBundle.prediction}"
-                    }
+//                    var newPrediction: String
+//                    if (resultBundle.prediction == "Waiting for more frames..."){
+////                        newPrediction= LandmarkerHelper.finishSign()
+//                        _fragmentCameraBinding!!.predictedTextView.text = "NOT ENOUGH FRAMES"
+//                    }
+//                    else{
+//                        _fragmentCameraBinding!!.predictedTextView.text = "prediction: ${resultBundle.prediction}"
+//                    }
                     stopVideoRecording()
 
+                    imageCounter = imageCounter / IMAGEDIVIDER
 
+                    // use VideostartTime and ImageCounter to calculate actual FPS
+                    val endTime = System.currentTimeMillis()
+                    videoTime = endTime - VideostartTime
+                    Log.d("frameQueue", "end time: $endTime")
+                    Log.d("frameQueue", "total time in seconds: ${(endTime - VideostartTime) / 1000}")
+                    Log.d("frameQueue", "total time in milliseconds: ${endTime - VideostartTime}")
+                    Log.d("frameQueue", "total frames: ${imageCounter}")
+                    Log.d("frameQueue", "actual FPS: ${imageCounter / ((endTime - VideostartTime) / 1000)}")
                 }
-
-
-
-
-
-
-//                if (fragmentCameraBinding.recyclerviewResults.scrollState != SCROLL_STATE_DRAGGING) {
-//                    faceBlendshapesResultAdapter.updateResults(resultBundle.faceResults.firstOrNull())
-//                    faceBlendshapesResultAdapter.notifyDataSetChanged()
-//                }
-
-
-//                fragmentCameraBinding.bottomSheetLayout.inferenceTimeVal.text =
-//                    String.format("%d ms", resultBundle.inferenceTime)
-
-//                // Pass necessary information to OverlayView for drawing on the canvas
-//                fragmentCameraBinding.overlay.setResults(
-//                    resultBundle.faceResults.firstOrNull(),
-//                    resultBundle.handResults.firstOrNull(),
-//                    resultBundle.poseResults.firstOrNull(),
-//                    resultBundle.inputImageHeight,
-//                    resultBundle.inputImageWidth,
-//                    RunningMode.IMAGE,
-////                    RunningMode.LIVE_STREAM
-//                )
                 // Force a redraw
 //                fragmentCameraBinding.overlay.invalidate()
             }
