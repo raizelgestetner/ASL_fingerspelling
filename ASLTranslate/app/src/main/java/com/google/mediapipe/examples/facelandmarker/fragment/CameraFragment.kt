@@ -93,7 +93,7 @@ class CameraFragment : Fragment(), LandmarkerHelper.LandmarkerListener {
     var startTime = System.nanoTime() // Initial start time
     var frameCount = 0
     val VideostartTime = System.currentTimeMillis()
-    var IMAGEDIVIDER = 2
+    var IMAGEDIVIDER = 4
 
     var videoTime = System.currentTimeMillis()
     var processingTime = System.currentTimeMillis()
