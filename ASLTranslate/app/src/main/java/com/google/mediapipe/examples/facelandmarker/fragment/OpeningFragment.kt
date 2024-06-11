@@ -6,6 +6,7 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
+import com.google.android.material.button.MaterialButton
 import com.google.mediapipe.examples.facelandmarker.R
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 
@@ -17,7 +18,7 @@ class OpeningFragment : Fragment() {
     ): View? {
         // Inflate the layout for this fragment
         val view = inflater.inflate(R.layout.fragment_opening, container, false)
-        val startButton: FloatingActionButton = view.findViewById(R.id.btnStartTranslate)
+        val startButton: MaterialButton = view.findViewById(R.id.btnStartTranslate)
 
         startButton.setOnClickListener {
 

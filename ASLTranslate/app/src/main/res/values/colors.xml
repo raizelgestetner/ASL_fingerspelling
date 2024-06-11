@@ -15,7 +15,7 @@
     ~ limitations under the License.
 -->
 <resources>
-    <color name="mp_color_primary">#007F8B</color>
+    <color name="mp_color_primary">#29702C</color>
     <color name="mp_color_primary_variant">#12B5CB</color>
     <color name="mp_color_primary_dark">#00676D</color>
     <color name="mp_color_secondary">#FBBC04</color>
@@ -28,9 +28,11 @@
     <color name="icActive">#FFFFFFFF</color>
     <color name="icFocused">#DDFFFFFF</color>
     <color name="icPressed">#AAFFFFFF</color>
-
+    <color name="titleColor">#29702C</color>
     <color name="colorPrimary">#6200EE</color>
     <color name="colorPrimaryDark">#3700B3</color>
     <color name="colorAccent">#03DAC5</color>
     <color name="bottom_nav_item">#FFFFFF</color>
+    <color name="greenHand">#4C9259</color>
+    <color name="greenHand1">#4A9151</color>
 </resources>

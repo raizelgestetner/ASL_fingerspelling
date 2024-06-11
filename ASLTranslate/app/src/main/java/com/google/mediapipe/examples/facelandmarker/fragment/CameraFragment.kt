@@ -435,11 +435,13 @@ class CameraFragment : Fragment(), LandmarkerHelper.LandmarkerListener {
 
                 // if frameQueue.size not empty, then add "still processing" to the predictedTextView
                 if (frameQueue.size > 0 && stopVideo) {
+//                    textToShow = "Still Processing... wait!"
                     textToShow = buildString {
                         append(textToShow)
-                        append("\nStill processing... wait!")
+//                        append("\n\nStill processing... wait!")
                         append("\n(Has ${frameQueue.size} frames left)")
                     }
+
                 }
 
                 _fragmentCameraBinding!!.predictedTextView.text = textToShow
