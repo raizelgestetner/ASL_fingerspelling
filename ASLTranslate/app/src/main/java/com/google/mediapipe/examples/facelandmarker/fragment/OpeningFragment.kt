@@ -9,6 +9,12 @@ import androidx.navigation.fragment.findNavController
 import com.google.android.material.button.MaterialButton
 import com.google.mediapipe.examples.facelandmarker.R
 import com.google.android.material.floatingactionbutton.FloatingActionButton
+import android.graphics.Color
+import android.text.SpannableString
+import android.text.Spanned
+import android.text.style.BackgroundColorSpan
+import android.widget.TextView
+
 
 class OpeningFragment : Fragment() {
 
@@ -16,8 +22,12 @@ class OpeningFragment : Fragment() {
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View? {
-        // Inflate the layout for this fragment
         val view = inflater.inflate(R.layout.fragment_opening, container, false)
+
+
+
+        // Inflate the layout for this fragment
+
         val startButton: MaterialButton = view.findViewById(R.id.btnStartTranslate)
 
         startButton.setOnClickListener {

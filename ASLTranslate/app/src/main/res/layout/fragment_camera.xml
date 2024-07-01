@@ -28,12 +28,14 @@
             android:padding="16dp"
             android:text="Translation will appear here"
             android:textColor="@android:color/black"
-            android:textSize="18sp"
+            android:textSize="22sp"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintHeight_percent="0.40"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@id/view_finder" />
+
+
 
 
     </androidx.constraintlayout.widget.ConstraintLayout>
@@ -49,6 +51,7 @@
         android:contentDescription="Start Recording"
         android:src="@drawable/ic_record"
         android:text="restart"
+        android:textColor="#F7F5E8"
         app:cornerRadius="32dp"/>
 
     <com.google.android.material.button.MaterialButton
@@ -60,9 +63,36 @@
         android:layout_gravity="bottom|right"
         android:backgroundTint="#468E46"
         android:text="finished sign"
+        android:textColor="#F7F5E8"
         android:contentDescription="finish Recording"
         app:cornerRadius="32dp"
+
          />
 
+<!--    <com.google.android.material.button.MaterialButton-->
+<!--        android:id="@+id/returnToOpeningScreen"-->
+<!--        android:layout_width="60dp"-->
+<!--        android:layout_height="60dp"-->
+<!--        android:layout_gravity="bottom|left"-->
+<!--        android:layout_marginEnd="10dp"-->
+<!--        android:layout_marginBottom="5dp"-->
+<!--        android:backgroundTint="#468E46"-->
 
+<!--        android:contentDescription="return to home screen"-->
+<!--        android:text="back" />-->
+
+    <ImageButton
+        android:id="@+id/returnToOpeningScreen"
+        android:layout_width="60dp"
+        android:layout_height="60dp"
+        android:layout_gravity="bottom|left"
+        android:layout_marginEnd="10dp"
+        android:layout_marginBottom="5dp"
+        android:backgroundTint="#468E46"
+        android:contentDescription="Return to home screen"
+        android:src="@drawable/ic_home"
+        android:scaleType="fitCenter"
+        app:backgroundTintMode="src_in"
+        app:rippleColor="@color/colorAccent"
+        app:tint="#F7F5E8" />
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

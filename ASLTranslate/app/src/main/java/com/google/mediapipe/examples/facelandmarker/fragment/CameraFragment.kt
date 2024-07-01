@@ -55,6 +55,8 @@ import java.util.concurrent.ArrayBlockingQueue
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
+import androidx.navigation.NavController;
+import com.google.android.material.button.MaterialButton
 
 class CameraFragment : Fragment(), LandmarkerHelper.LandmarkerListener {
 
@@ -155,6 +157,7 @@ class CameraFragment : Fragment(), LandmarkerHelper.LandmarkerListener {
         val view = inflater.inflate(R.layout.fragment_camera, container, false)
 
 
+
         return fragmentCameraBinding.root
     }
 
@@ -192,8 +195,7 @@ class CameraFragment : Fragment(), LandmarkerHelper.LandmarkerListener {
             )
         }
 
-        // Attach listeners to UI control widgets
-//        initBottomSheetControls()
+
     }
 
     // Initialize CameraX, and prepare to bind the camera use cases
@@ -322,6 +324,7 @@ class CameraFragment : Fragment(), LandmarkerHelper.LandmarkerListener {
         frameProcessingExecutor.execute {
             while (!Thread.currentThread().isInterrupted) {
                 try {
+
                     Log.d("QueueSize", "This is my QueueSize: ${frameQueue.size}")
                     // Take an image from the queue, blocking if necessary until an element becomes available
                     val (imageData, width, height) = frameQueue.take()
@@ -483,6 +486,13 @@ class CameraFragment : Fragment(), LandmarkerHelper.LandmarkerListener {
                 }
                 // Force a redraw
 //                fragmentCameraBinding.overlay.invalidate()
+
+
+                _fragmentCameraBinding!!.returnToOpeningScreen.setOnClickListener {
+
+                    findNavController().navigate(R.id.action_cameraFragment_to_openingFragment)
+                }
+
             }
         }
     }
