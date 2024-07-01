@@ -324,27 +324,28 @@ class CameraFragment : Fragment(), LandmarkerHelper.LandmarkerListener {
         frameProcessingExecutor.execute {
             while (!Thread.currentThread().isInterrupted) {
                 try {
+                    if(!frameQueue.isEmpty()) {
 
-                    Log.d("QueueSize", "This is my QueueSize: ${frameQueue.size}")
-                    // Take an image from the queue, blocking if necessary until an element becomes available
-                    val (imageData, width, height) = frameQueue.take()
-                    val bitmap = imageData
-                    detectFace(bitmap)
-
-                    if (frameQueue.size == 0) {
-                        // print and save end time
-                        val endTime = System.currentTimeMillis()
-                        processingTime = endTime - startTime
-                        Log.d("frameQueue", "total process end time: $endTime")
-                        Log.d("frameQueue", "total process time in seconds: ${(endTime - startTime) / 1000}")
-                        Log.d("frameQueue", "total process time in milliseconds: ${endTime - startTime}")
-
-                        // video time vs processing time
-                        Log.d("frameQueue", "video time: ${videoTime / 1000}")
-                        Log.d("frameQueue", "processing time: ${processingTime / 1000}")
-                        Log.d("frameQueue", "video time vs processing time: ${(videoTime - processingTime) / 1000}")
-                        // use imageCounter to calculate actual FPS
+                        Log.d("QueueSize", "This is my QueueSize: ${frameQueue.size}")
+                        // Take an image from the queue, blocking if necessary until an element becomes available
+                        val (imageData, width, height) = frameQueue.take()
+                        val bitmap = imageData
+                        detectFace(bitmap)
                     }
+//                    if (frameQueue.size == 0) {
+//                        // print and save end time
+//                        val endTime = System.currentTimeMillis()
+//                        processingTime = endTime - startTime
+//                        Log.d("frameQueue", "total process end time: $endTime")
+//                        Log.d("frameQueue", "total process time in seconds: ${(endTime - startTime) / 1000}")
+//                        Log.d("frameQueue", "total process time in milliseconds: ${endTime - startTime}")
+//
+//                        // video time vs processing time
+//                        Log.d("frameQueue", "video time: ${videoTime / 1000}")
+//                        Log.d("frameQueue", "processing time: ${processingTime / 1000}")
+//                        Log.d("frameQueue", "video time vs processing time: ${(videoTime - processingTime) / 1000}")
+//                        // use imageCounter to calculate actual FPS
+//                    }
                 } catch (e: InterruptedException) {
                     Thread.currentThread().interrupt() // Restore interruption status
                     break
@@ -459,6 +460,8 @@ class CameraFragment : Fragment(), LandmarkerHelper.LandmarkerListener {
 
                 // Set up the FloatingActionButton to restart the fragment
                 _fragmentCameraBinding!!.fabRecord.setOnClickListener {
+                    frameQueue.clear()
+                    
                     restartFragment()
                 }
 
