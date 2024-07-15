@@ -491,7 +491,7 @@ class CameraFragment : Fragment(), LandmarkerHelper.LandmarkerListener {
                     if (calculateLevenshteinDistance(textToShow, newPrediction) <= maxLevenshteinDistance
                         || textToShow.contains("Waiting for more frames...")
                         || textToShow.contains("Translation will appear here")
-                        || currFrame - lastUpdatedFrame >= 3)
+                        || currFrame - lastUpdatedFrame >= 2)
                     {
                         textToShow = resultBundle.prediction
                         lastUpdatedFrame = currFrame
