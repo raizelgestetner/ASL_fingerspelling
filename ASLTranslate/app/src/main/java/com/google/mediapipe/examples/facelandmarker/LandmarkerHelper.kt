@@ -432,7 +432,9 @@ class LandmarkerHelper(
         uri?.let {
             try {
                 resolver.openOutputStream(it).use { outputStream ->
-                    bitmap.compress(Bitmap.CompressFormat.PNG, 100, outputStream)
+                    if (outputStream != null) {
+                        bitmap.compress(Bitmap.CompressFormat.PNG, 100, outputStream)
+                    }
                 }
                 Log.d("Save Bitmap", "Bitmap saved to Gallery: $uniqueFileName")
             } catch (e: IOException) {

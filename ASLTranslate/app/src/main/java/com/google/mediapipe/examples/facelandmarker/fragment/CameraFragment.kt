@@ -66,6 +66,8 @@ class CameraFragment : Fragment(), LandmarkerHelper.LandmarkerListener {
 
     private var _fragmentCameraBinding: FragmentCameraBinding? = null
 
+    private var lastUpdatedFrame = 0
+    private var currFrame = 0
 
 
     private val fragmentCameraBinding
@@ -419,6 +421,26 @@ class CameraFragment : Fragment(), LandmarkerHelper.LandmarkerListener {
         }
     }
 
+    fun calculateLevenshteinDistance(s1: String, s2: String): Int {
+        val dp = Array(s1.length + 1) { IntArray(s2.length + 1) }
+
+        for (i in 0..s1.length) {
+            for (j in 0..s2.length) {
+                when {
+                    i == 0 -> dp[i][j] = j
+                    j == 0 -> dp[i][j] = i
+                    else -> dp[i][j] = minOf(
+                        dp[i - 1][j] + 1,
+                        dp[i][j - 1] + 1,
+                        dp[i - 1][j - 1] + if (s1[i - 1] == s2[j - 1]) 0 else 1
+                    )
+                }
+            }
+        }
+
+        return dp[s1.length][s2.length]
+    }
+
 
     // Update UI after face have been detected. Extracts original
     // image height/width to scale and place the landmarks properly through
@@ -429,25 +451,45 @@ class CameraFragment : Fragment(), LandmarkerHelper.LandmarkerListener {
         Log.d("onResults", "This is my message: onResults");
         activity?.runOnUiThread {
             if (_fragmentCameraBinding != null) {
+                currFrame++
 
                 var textToShow = _fragmentCameraBinding!!.predictedTextView.text.toString().substringBefore("\n")
 
+                val newPrediction = resultBundle.prediction
+                val maxLevenshteinDistance = 5
+
+                // Log
+                Log.d("pred", "prediction: ${resultBundle.prediction}")
+                Log.d("pred", "textToShow: ${textToShow}")
+                Log.d("pred", "LevenshteinDistance: ${calculateLevenshteinDistance(textToShow, newPrediction)}")
+
+
+                Log.d("pred", "lastUpdatedFrame: ${lastUpdatedFrame}")
+                Log.d("pred", "currFrame: ${currFrame}")
 
                 if (!(textToShow != "Waiting for more frames..."
-                    && resultBundle.prediction == "Waiting for more frames..."))
-                    textToShow = resultBundle.prediction
+                    && resultBundle.prediction == "Waiting for more frames...") && !resultBundle.prediction.contains("2 a-e -aroe"))
+                {
+                    if (calculateLevenshteinDistance(textToShow, newPrediction) <= maxLevenshteinDistance
+                        || textToShow.contains("Waiting for more frames...")
+                        || textToShow.contains("Translation will appear here")
+                        || currFrame - lastUpdatedFrame >= 3)
+                    {
+                        textToShow = resultBundle.prediction
+                        lastUpdatedFrame = currFrame
+                    }
+                }
+
 
                 // if frameQueue.size not empty, then add "still processing" to the predictedTextView
                 if (frameQueue.size > 0 && stopVideo) {
-//                    textToShow = "Still Processing... wait!"
                     textToShow = buildString {
                         append(textToShow)
-//                        append("\n\nStill processing... wait!")
-                        append("\n(Has ${frameQueue.size} frames left)")
+                        append("\n\n\n\n(Has ${frameQueue.size} frames left)")
                     }
-
                 }
 
+                Log.d("pred", "predictedTextView.text: ${textToShow}")
                 _fragmentCameraBinding!!.predictedTextView.text = textToShow
 
                 // Check if the predicted string has more than 30 words
