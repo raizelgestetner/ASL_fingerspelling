@@ -26,6 +26,8 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.AdapterView
 import android.widget.Button
+import android.widget.ProgressBar
+import android.widget.TextView
 import android.widget.Toast
 import androidx.camera.core.Preview
 import androidx.camera.core.CameraSelector
@@ -68,6 +70,10 @@ class CameraFragment : Fragment(), LandmarkerHelper.LandmarkerListener {
 
     private var lastUpdatedFrame = 0
     private var currFrame = 0
+    private var initialQueueSize = 0
+
+    private lateinit var processingProgressBar: ProgressBar
+    private lateinit var progressPercentageTextView: TextView
 
 
     private val fragmentCameraBinding
@@ -197,7 +203,8 @@ class CameraFragment : Fragment(), LandmarkerHelper.LandmarkerListener {
             )
         }
 
-
+        processingProgressBar = fragmentCameraBinding.processingProgressBar
+        progressPercentageTextView = fragmentCameraBinding.progressPercentageTextView
     }
 
     // Initialize CameraX, and prepare to bind the camera use cases
@@ -441,6 +448,17 @@ class CameraFragment : Fragment(), LandmarkerHelper.LandmarkerListener {
         return dp[s1.length][s2.length]
     }
 
+    private fun updateProgressBar(progress: Int) {
+        processingProgressBar.visibility = View.VISIBLE
+        progressPercentageTextView.visibility = View.VISIBLE
+        processingProgressBar.progress = progress
+        progressPercentageTextView.text = "$progress%"
+    }
+
+    private fun hideProgressBar() {
+        processingProgressBar.visibility = View.GONE
+        progressPercentageTextView.visibility = View.GONE
+    }
 
     // Update UI after face have been detected. Extracts original
     // image height/width to scale and place the landmarks properly through
@@ -451,7 +469,6 @@ class CameraFragment : Fragment(), LandmarkerHelper.LandmarkerListener {
         Log.d("onResults", "This is my message: onResults");
         activity?.runOnUiThread {
             if (_fragmentCameraBinding != null) {
-                currFrame++
 
                 var textToShow = _fragmentCameraBinding!!.predictedTextView.text.toString().substringBefore("\n")
 
@@ -470,6 +487,7 @@ class CameraFragment : Fragment(), LandmarkerHelper.LandmarkerListener {
                 if (!(textToShow != "Waiting for more frames..."
                     && resultBundle.prediction == "Waiting for more frames...") && !resultBundle.prediction.contains("2 a-e -aroe"))
                 {
+                    currFrame++
                     if (calculateLevenshteinDistance(textToShow, newPrediction) <= maxLevenshteinDistance
                         || textToShow.contains("Waiting for more frames...")
                         || textToShow.contains("Translation will appear here")
@@ -482,11 +500,22 @@ class CameraFragment : Fragment(), LandmarkerHelper.LandmarkerListener {
 
 
                 // if frameQueue.size not empty, then add "still processing" to the predictedTextView
+//                if (frameQueue.size > 0 && stopVideo) {
+//                    textToShow = buildString {
+//                        append(textToShow)
+//                        append("\n\n\n\n(Has ${frameQueue.size} frames left)")
+//                    }
+//                }
+
+                // Update progress bar instead of adding text
                 if (frameQueue.size > 0 && stopVideo) {
-                    textToShow = buildString {
-                        append(textToShow)
-                        append("\n\n\n\n(Has ${frameQueue.size} frames left)")
+                    if (initialQueueSize == 0) {
+                        initialQueueSize = frameQueue.size
                     }
+                    val progress = ((initialQueueSize - frameQueue.size.toFloat()) / initialQueueSize * 100).toInt()
+                    updateProgressBar(progress)
+                } else {
+                    hideProgressBar()
                 }
 
                 Log.d("pred", "predictedTextView.text: ${textToShow}")

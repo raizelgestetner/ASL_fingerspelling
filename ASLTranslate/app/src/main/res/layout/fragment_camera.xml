@@ -35,14 +35,37 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@id/view_finder" />
 
+        <ProgressBar
+            android:id="@+id/processingProgressBar"
+            style="?android:attr/progressBarStyleHorizontal"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:visibility="gone"
+            app:layout_constraintTop_toTopOf="@id/predictedTextView"
+            app:layout_constraintEnd_toEndOf="@id/predictedTextView"
+            app:layout_constraintStart_toStartOf="@id/predictedTextView"
+            android:layout_marginBottom="16dp"
+            android:layout_marginTop="30dp"
+            android:layout_marginHorizontal="16dp"/>
 
+        <TextView
+            android:id="@+id/progressPercentageTextView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="@android:color/black"
+            android:visibility="gone"
+            app:layout_constraintBottom_toTopOf="@id/processingProgressBar"
+            app:layout_constraintEnd_toEndOf="@id/processingProgressBar"
+            app:layout_constraintStart_toStartOf="@id/processingProgressBar"
+            android:layout_marginBottom="8dp"/>
 
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 
     <com.google.android.material.button.MaterialButton
         android:id="@+id/fabRecord"
-        android:layout_width="120dp"
+        android:layout_width="113dp"
         android:layout_height="60dp"
         android:layout_gravity="bottom|center"
         android:layout_marginEnd="5dp"
@@ -52,13 +75,13 @@
         android:src="@drawable/ic_record"
         android:text="restart"
         android:textColor="#F7F5E8"
-        app:cornerRadius="32dp"/>
+        app:cornerRadius="32dp" />
 
     <com.google.android.material.button.MaterialButton
         android:id="@+id/finishSign"
         android:layout_width="120dp"
         android:layout_height="60dp"
-        android:layout_marginEnd="130dp"
+        android:layout_marginEnd="10dp"
         android:layout_marginBottom="5dp"
         android:layout_gravity="bottom|right"
         android:backgroundTint="#468E46"
@@ -66,7 +89,6 @@
         android:textColor="#F7F5E8"
         android:contentDescription="finish Recording"
         app:cornerRadius="32dp"
-
          />
 
 <!--    <com.google.android.material.button.MaterialButton-->
@@ -86,7 +108,7 @@
         android:layout_width="60dp"
         android:layout_height="60dp"
         android:layout_gravity="bottom|left"
-        android:layout_marginEnd="10dp"
+        android:layout_marginLeft="10dp"
         android:layout_marginBottom="5dp"
         android:backgroundTint="#468E46"
         android:contentDescription="Return to home screen"
