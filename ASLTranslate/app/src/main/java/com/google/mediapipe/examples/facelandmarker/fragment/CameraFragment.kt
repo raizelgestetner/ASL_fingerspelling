@@ -24,41 +24,29 @@ import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.AdapterView
-import android.widget.Button
 import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
-import androidx.camera.core.Preview
+import androidx.camera.core.AspectRatio
+import androidx.camera.core.Camera
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageAnalysis
-import androidx.camera.core.ImageProxy
-import androidx.camera.core.Camera
-import androidx.camera.core.AspectRatio
+import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.navigation.Navigation
-import androidx.navigation.fragment.NavHostFragment
-import androidx.navigation.fragment.NavHostFragment.Companion.findNavController
 import androidx.navigation.fragment.findNavController
-import androidx.recyclerview.widget.LinearLayoutManager
-import androidx.viewpager2.widget.ViewPager2.SCROLL_STATE_DRAGGING
 import com.example.asltransslate.LandmarkerHelper
-import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.google.mediapipe.examples.facelandmarker.MainViewModel
 import com.google.mediapipe.examples.facelandmarker.R
 import com.google.mediapipe.examples.facelandmarker.databinding.FragmentCameraBinding
 import com.google.mediapipe.tasks.vision.core.RunningMode
 import java.nio.ByteBuffer
-import java.util.Locale
 import java.util.concurrent.ArrayBlockingQueue
-import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
-import androidx.navigation.NavController;
-import com.google.android.material.button.MaterialButton
 
 class CameraFragment : Fragment(), LandmarkerHelper.LandmarkerListener {
 
@@ -71,6 +59,7 @@ class CameraFragment : Fragment(), LandmarkerHelper.LandmarkerListener {
     private var lastUpdatedFrame = 0
     private var currFrame = 0
     private var initialQueueSize = 0
+    private var frameDistance = 2
 
     private lateinit var processingProgressBar: ProgressBar
     private lateinit var progressPercentageTextView: TextView
@@ -97,7 +86,7 @@ class CameraFragment : Fragment(), LandmarkerHelper.LandmarkerListener {
     /** Blocking ML operations are performed using this executor */
 //    private lateinit var backgroundExecutor: ExecutorService
 
-    private val backgroundExecutor = Executors.newSingleThreadExecutor()
+    private var backgroundExecutor = Executors.newSingleThreadExecutor()
     private val frameProcessingExecutor = Executors.newSingleThreadExecutor()
 
     var startTime = System.nanoTime() // Initial start time
@@ -473,7 +462,7 @@ class CameraFragment : Fragment(), LandmarkerHelper.LandmarkerListener {
                 var textToShow = _fragmentCameraBinding!!.predictedTextView.text.toString().substringBefore("\n")
 
                 val newPrediction = resultBundle.prediction
-                val maxLevenshteinDistance = 5
+                var maxLevenshteinDistance = 5
 
                 // Log
                 Log.d("pred", "prediction: ${resultBundle.prediction}")
@@ -488,10 +477,16 @@ class CameraFragment : Fragment(), LandmarkerHelper.LandmarkerListener {
                     && resultBundle.prediction == "Waiting for more frames...") && !resultBundle.prediction.contains("2 a-e -aroe"))
                 {
                     currFrame++
+
+                    if (frameQueue.size == 0)
+                    {
+                        maxLevenshteinDistance = 10
+                        frameDistance = 1
+                    }
                     if (calculateLevenshteinDistance(textToShow, newPrediction) <= maxLevenshteinDistance
                         || textToShow.contains("Waiting for more frames...")
                         || textToShow.contains("Translation will appear here")
-                        || currFrame - lastUpdatedFrame >= 2)
+                        || currFrame - lastUpdatedFrame >= frameDistance)
                     {
                         textToShow = resultBundle.prediction
                         lastUpdatedFrame = currFrame
@@ -531,9 +526,17 @@ class CameraFragment : Fragment(), LandmarkerHelper.LandmarkerListener {
 
                 // Set up the FloatingActionButton to restart the fragment
                 _fragmentCameraBinding!!.fabRecord.setOnClickListener {
+                    backgroundExecutor.shutdown()
+                    backgroundExecutor.awaitTermination(
+                        Long.MAX_VALUE, TimeUnit.NANOSECONDS
+                    )
+
                     frameQueue.clear()
-                    
+
+                    stopVideoRecording()
                     restartFragment()
+                    backgroundExecutor = Executors.newSingleThreadExecutor()
+
                 }
 
                 _fragmentCameraBinding!!.finishSign.setOnClickListener {
