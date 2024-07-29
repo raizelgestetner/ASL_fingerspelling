@@ -43,6 +43,7 @@ To get started and edit the app, you just need to clone the app which is under t
 
 ### 🧱 Prerequisites
 - Android Studio IDE
+- Android device or emulator
 
 ### 🏗️ Installing
 Clone the repository:
