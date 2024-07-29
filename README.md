@@ -9,14 +9,14 @@ Electrical Engineering and CS HUJI 4th year project.
 
 <!-- table of content -->
 ## Table of Contents
-- [The Team](#the-team)
-- [Project Description](#project-description)
-- [Getting Started](#getting-started)
-- [Prerequisites](#prerequisites)
-- [Installing](#installing)
-- [Deployment](#deployment)
-- [Built With](#built-with)
-- [Acknowledgments](#acknowledgments)
+- [The Team](#-the-team)
+- [Project Description](#-project-description)
+- [Getting Started](#-getting-started)
+- [Prerequisites](#-prerequisites)
+- [Installing](#️-installing)
+- [Deployment](#-deployment)
+- [Built With](#️-built-with)
+- [Acknowledgments](#-acknowledgments)
 
 ## 👥 The Team
 **Team Members**
